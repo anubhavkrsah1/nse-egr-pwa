@@ -1,0 +1,37 @@
+# NSE EGR — Netlify cache headers
+
+# index.html & db.js: NEVER cache — always fresh on deploy
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/db.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# Root (also serves index.html)
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Static assets: cache for 1 year (content-addressed, never change)
+/react.min.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/react-dom.min.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/icon-192.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/icon-512.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/manifest.json
+  Cache-Control: public, max-age=3600
