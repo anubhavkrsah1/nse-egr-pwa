@@ -1022,10 +1022,73 @@ function saveISINState(state){
 function enabledISINs(){return loadISINState().filter(s=>s.enabled);}
 
 // ================================================================
+// DISCLAIMERS MASTER — All T&Cs, editable from Admin portal
+// ================================================================
+const DISCLAIMERS_DEFAULTS={
+  form45_1:"The applicant/depositor hereby confirms that the physical gold submitted for creation of EGR(s) is genuine, legally owned by the applicant/depositor, and conforms to applicable NSE Good Delivery/Good Gold Standards.",
+  form45_2:"The request for conversion of physical gold into EGR(s) shall be subject to verification, assaying, validation, and approval by the DP, Vault Manager, Assayer, Refinery, Depository, Clearing Corporation, and the Exchange.",
+  form45_3:"The physical gold submitted is free from any lien, charge, pledge, hypothecation, dispute, court injunction, third-party claim, or any other encumbrance.",
+  form45_4:"The submitted gold shall be subject to quality verification, assaying, weighing, packaging, and vault acceptance procedures as prescribed by applicable regulations and Exchange guidelines.",
+  form45_5:"The applicant/depositor understands that EGR creation will be completed only after the physical gold is verified and accepted by the Vault Manager as per Exchange and SEBI regulations.",
+  form45_6:"The applicant/depositor agrees to bear all applicable charges including collection, assaying, vaulting, DP charges, and other statutory levies as notified by NSE from time to time.",
+  form45_7:"Any discrepancy in purity, weight, quality, documentation, or packaging may result in rejection or adjustment of EGR units at the discretion of the Vault Manager and Exchange.",
+  form45_8:"The DP / Participant is authorised to enter the deposit request into the eDPAM system and generate a Deposit Request Number (DRN) upon receipt of this duly signed and stamped Form 45.",
+  form45_9:"EGR units shall be credited to the depositor's demat account only after completion of the full workflow: Collection → Assaying → Refining (if applicable) → Vaulting → DP confirmation.",
+  form45_10:"The Exchange and its empanelled agencies (Vault Manager, Assayer, Refinery) shall not be liable for any loss arising due to force majeure events, regulatory actions, or circumstances beyond their reasonable control.",
+  form45_11:"The depositor agrees that the physical gold once deposited cannot be returned in the same form and that EGR creation is an irreversible process post Vault Manager acceptance.",
+  form45_12:"The depositor must ensure that the gold submitted conforms to one of the following: NSE Empanelled Refiners (Parker Precious Metals LLP, Augmont Enterprise Limited, Gujarat Gold Centre Pvt Ltd) or LBMA accredited refinery.",
+  form45_13:"For gold bars exceeding 100 grams, the exact Bar Number must be recorded in the Packing List and this Form 45. The bar numbers must match the physical bars submitted.",
+  form45_14:"An Authorisation Letter with the representative's Aadhar/PAN details is mandatory if gold is delivered by an authorised representative instead of the account holder.",
+  form45_15:"All disputes arising from this transaction shall be subject to SEBI/NSE regulatory framework, and the depositor agrees to abide by the Exchange's Bye-Laws, Rules, and Regulations as amended from time to time.",
+  assay_disclaimer:"Any discrepancy in purity or weight after assaying may result in rejection or adjustment of EGR units.",
+  extinguish_warning:"Once gold is deposited for EGR, physical return in the same form is NOT possible. Extinguish converts your EGR back to physical gold — a separate vault withdrawal process.",
+};
+function loadDisclaimers(){
+  try{return JSON.parse(localStorage.getItem("egr_disclaimers")||JSON.stringify(DISCLAIMERS_DEFAULTS));}
+  catch(e){return DISCLAIMERS_DEFAULTS;}
+}
+function saveDisclaimers(obj){localStorage.setItem("egr_disclaimers",JSON.stringify(obj));}
+function getDisclaimer(key){return loadDisclaimers()[key]||DISCLAIMERS_DEFAULTS[key];}
+
+// ================================================================
+// DOCUMENT ACCESS CONTROL — Role-based visibility
+// Format: {depositId}:{docType} → {role1:true, role2:true, ...}
+// ================================================================
+const DOC_TYPES=["form45","depositLetter","pickupVaultLetter","releaseTransferLetter","packingList","indemnityLetter","authLetter"];
+const ROLE_VISIBILITY={
+  // Refiner, Vault, NSDL see ALL docs by default
+  refiner:DOC_TYPES,vault:DOC_TYPES,nsdl:DOC_TYPES,
+  // Others see subset
+  collection:["form45","authLetter","packingList"],
+  assayer:["form45","packingList"],
+  dp:["form45","depositLetter","releaseTransferLetter"],
+  pickup:["authLetter"],
+};
+function canViewDoc(role,depositId,docType){
+  if(["refiner","vault","nsdl"].includes(role))return true; // Always see all
+  const perms=JSON.parse(localStorage.getItem("egr_doc_access")||"{}");
+  const key=`${depositId}:${docType}`;
+  return perms[key]?.[role]===true;
+}
+function grantDocAccess(depositId,docType,role){
+  const perms=JSON.parse(localStorage.getItem("egr_doc_access")||"{}");
+  const key=`${depositId}:${docType}`;
+  if(!perms[key])perms[key]={};
+  perms[key][role]=true;
+  localStorage.setItem("egr_doc_access",JSON.stringify(perms));
+}
+function revokeDocAccess(depositId,docType,role){
+  const perms=JSON.parse(localStorage.getItem("egr_doc_access")||"{}");
+  const key=`${depositId}:${docType}`;
+  if(perms[key]){delete perms[key][role];}
+  localStorage.setItem("egr_doc_access",JSON.stringify(perms));
+}
+
+// ================================================================
 // SIDEBAR MENU
 // ================================================================
 const NAV_GROUPS=[
-  {group:"Depositor",items:[["login","🔐","Login"],["register","📝","Register"],["home","🏠","Home"],["create","➕","EGR Creation"],["track","📍","Track"],["notifs","🔔","Notifications"],["review","↩️","Review/Recall"],["payment","💳","Charges"],["extinguish","🔥","Extinguish"]]},
+  {group:"Depositor",items:[["login","🔐","Login"],["register","📝","Register"],["home","🏠","Home"],["create","➕","EGR Creation"],["track","📍","Track"],["notifs","🔔","Notifications"],["review","↩️","Review/Recall"],["payment","💳","Charges"],["extinguish","🔥","Extinguish"],["myDocs","🔒","My Documents"]]},
   {group:"Documents",items:[["form45","📋","Form 45 (NSDL)"],["depositLetter","📄","Deposit Letter (Refiner→Vault)"],["pickupVaultLetter","🚚","Pickup & Vault Letter"],["releaseTransferLetter","🔄","Release & Transfer"],["packingList","📦","Gold Packing List"],["indemnityLetter","🛡️","Letter of Indemnity"],["authLetter","✍️","Authorisation Letter"]]},
   {group:"Info & Tools",items:[["flyer","🌟","Flyer"],["cert","📜","EGR+Share"],["journeys","🗺️","Journeys"],["roleMap","👥","Role Map"],["flowMap","🔀","Process Flow"],["whatsapp","💬","WhatsApp"],["grievance","📞","Grievance"]]},
   {group:"Roles",items:[["collection","🏢","Collection Centre"],["pickup","🛵","Pickup Exec"],["assayer","🔬","Assayer"],["refiner","🏭","Refiner"],["vault","🏦","Vault Manager"],["dp","🏦","DP (Broker/Participant)"],["nsdl","🏛️","NSDL (Depository)"],["admin","⚙️","Admin"]]},
@@ -1077,25 +1140,14 @@ function downloadDoc(filename){
 // DOC 1: Form 45 — NSDL Deposit Request Form
 // DOC 1: Form 45 — NSE EGR Deposit Request (Official NSE Format)
 // Filled by: Depositor | DP submits to NSDL eDPAM | Vault Manager receives
-const FORM45_TC=[
-  "The applicant/depositor hereby confirms that the physical gold submitted for creation of EGR(s) is genuine, legally owned by the applicant/depositor, and conforms to applicable NSE Good Delivery/Good Gold Standards.",
-  "The request for conversion of physical gold into EGR(s) shall be subject to verification, assaying, validation, and approval by the DP, Vault Manager, Assayer, Refinery, Depository, Clearing Corporation, and the Exchange.",
-  "The physical gold submitted is free from any lien, charge, pledge, hypothecation, dispute, court injunction, third-party claim, or any other encumbrance.",
-  "The submitted gold shall be subject to quality verification, assaying, weighing, packaging, and vault acceptance procedures as prescribed by applicable regulations and Exchange guidelines.",
-  "The applicant/depositor understands that EGR creation will be completed only after the physical gold is verified and accepted by the Vault Manager as per Exchange and SEBI regulations.",
-  "The applicant/depositor agrees to bear all applicable charges including collection, assaying, vaulting, DP charges, and other statutory levies as notified by NSE from time to time.",
-  "Any discrepancy in purity, weight, quality, documentation, or packaging may result in rejection or adjustment of EGR units at the discretion of the Vault Manager and Exchange.",
-  "The DP / Participant is authorised to enter the deposit request into the eDPAM system and generate a Deposit Request Number (DRN) upon receipt of this duly signed and stamped Form 45.",
-  "EGR units shall be credited to the depositor's demat account only after completion of the full workflow: Collection → Assaying → Refining (if applicable) → Vaulting → DP confirmation.",
-  "The Exchange and its empanelled agencies (Vault Manager, Assayer, Refinery) shall not be liable for any loss arising due to force majeure events, regulatory actions, or circumstances beyond their reasonable control.",
-  "The depositor agrees that the physical gold once deposited cannot be returned in the same form and that EGR creation is an irreversible process post Vault Manager acceptance.",
-  "The depositor must ensure that the gold submitted conforms to one of the following: NSE Empanelled Refiners (Parker Precious Metals LLP, Augmont Enterprise Limited, Gujarat Gold Centre Pvt Ltd) or LBMA accredited refinery.",
-  "For gold bars exceeding 100 grams, the exact Bar Number must be recorded in the Packing List and this Form 45. The bar numbers must match the physical bars submitted.",
-  "An Authorisation Letter with the representative's Aadhar/PAN details is mandatory if gold is delivered by an authorised representative instead of the account holder.",
-  "All disputes arising from this transaction shall be subject to SEBI/NSE regulatory framework, and the depositor agrees to abide by the Exchange's Bye-Laws, Rules, and Regulations as amended from time to time.",
-];
+// Form 45 T&Cs loaded dynamically from localStorage (editable from Admin)
+function getForm45TC(){
+  const disc=loadDisclaimers();
+  return [disc.form45_1,disc.form45_2,disc.form45_3,disc.form45_4,disc.form45_5,disc.form45_6,disc.form45_7,disc.form45_8,disc.form45_9,disc.form45_10,disc.form45_11,disc.form45_12,disc.form45_13,disc.form45_14,disc.form45_15];
+}
 function Form45({go}){
   const isins=loadISINState();
+  const FORM45_TC=getForm45TC(); // Load dynamic T&Cs from localStorage
   const[step,setStep]=useState(0);
   const[f,setF]=useState({
     dpId:"IN302324",clientId:"",holderName:"Anoop Kumar",holder2:"",holder3:"",
@@ -1615,6 +1667,7 @@ function App(){
     flyer:React.createElement(Flyer,{go}),
     cert:React.createElement(Cert,{go,requests}),
     extinguish:React.createElement(Extinguish,{go}),
+    myDocs:React.createElement(MyDocs,{go,refreshData}),
     journeys:React.createElement(Journeys,{go}),
     roleMap:React.createElement(RoleMap,{go}),
     flowMap:React.createElement(FlowMap,{go}),
@@ -2414,6 +2467,72 @@ function Cert({go,requests}){
   );
 }
 
+// ================================================================
+// MY DOCUMENTS — Depositor manages document access for other roles
+// ================================================================
+function MyDocs({go,refreshData}){
+  const deposits=[
+    {id:"EGR-001",date:"19-May-2026",gold:"50g",purity:999,status:"active"},
+    {id:"EGR-002",date:"15-May-2026",gold:"100g",purity:995,status:"active"},
+  ];
+  const [selected,setSelected]=useState(null);
+  const [docShare,setDocShare]=useState({});
+
+  const docs=["form45","packingList","indemnityLetter","authLetter"];
+  const shareableRoles=["collection","assayer","refiner","vault","dp","nsdl"];
+
+  return React.createElement(React.Fragment,null,
+    React.createElement(NavBar,{onBack:()=>go("home"),title:"My Documents"}),
+    React.createElement(Scroll,null,
+      React.createElement(InfoBox,{tone:"blue"},"Share your EGR documents with roles that need them. Refiner, Vault Manager & NSDL always have access. Grant Collection Centre, Assayer, DP access as needed."),
+
+      !selected
+        ? React.createElement(React.Fragment,null,
+            React.createElement(Sec,null,"My EGRs"),
+            deposits.map(d=>
+              React.createElement("div",{key:d.id,onClick:()=>setSelected(d.id),style:{padding:"12px 13px",border:"1.5px solid var(--border2)",borderRadius:10,marginBottom:8,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}},
+                React.createElement("div",null,
+                  React.createElement("div",{style:{fontSize:12,fontWeight:700}},d.id),
+                  React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginTop:2}},d.date," · "+d.gold+" ("+d.purity+" purity)")
+                ),
+                React.createElement(Badge,{c:"green"},d.status)
+              )
+            )
+          )
+        : React.createElement(React.Fragment,null,
+            React.createElement(Card,{style:{marginBottom:12}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+                React.createElement("div",{style:{fontSize:13,fontWeight:700}},selected),
+                React.createElement(Badge,{c:"blue"},"Managing access")
+              ),
+              React.createElement("div",{style:{fontSize:10,color:"var(--ink3)"}},deposits.find(d=>d.id===selected)?.date+" · "+deposits.find(d=>d.id===selected)?.gold)
+            ),
+            React.createElement(Sec,null,"Document access control"),
+            docs.map(doc=>
+              React.createElement("div",{key:doc,style:{marginBottom:14,padding:"10px 12px",border:"1px solid var(--border2)",borderRadius:8,background:"var(--paper2)"}},
+                React.createElement("div",{style:{fontSize:11,fontWeight:700,marginBottom:8,color:"var(--cobalt)"}},
+                  doc===0?"Form 45":doc==="packingList"?"Gold Packing List":doc==="indemnityLetter"?"Letter of Indemnity":"Authorisation Letter"
+                ),
+                React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
+                  shareableRoles.map(role=>
+                    React.createElement("label",{key:role,style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",padding:"4px 8px",borderRadius:6,background:"#fff",border:"1px solid var(--border)"}},
+                      React.createElement("input",{type:"checkbox",checked:canViewDoc(role,selected,doc),onChange:e=>{
+                        if(e.target.checked)grantDocAccess(selected,doc,role);
+                        else revokeDocAccess(selected,doc,role);
+                        setDocShare(p=>({...p,[`${selected}:${doc}:${role}`]:e.target.checked}));
+                      },style:{cursor:"pointer",accentColor:"var(--green)"}}),
+                      React.createElement("span",{style:{fontSize:10,fontWeight:500}},role===0?"Collection":role==="assayer"?"Assayer":role==="refiner"?"Refiner":role==="vault"?"Vault":role==="dp"?"DP":"NSDL")
+                    )
+                  )
+                )
+              )
+            ),
+            React.createElement(Btn,{kind:"cobalt",onClick:()=>setSelected(null),style:{marginTop:12}},"← Back to my EGRs")
+          )
+    )
+  );
+}
+
 function Extinguish({go}){
   const owned={"10g":{sym:"GOLD10G999",max:2,val:59800,g:10},"1g":{sym:"GOLD1G999",max:4,val:5980,g:1}};
   const [qty,setQty]=useState({"10g":0,"1g":4});
@@ -3101,6 +3220,35 @@ function Broker({go}){
   );
 }
 
+// ================================================================
+// Admin — Editable Disclaimers/T&Cs
+// ================================================================
+function AdminDisclaimers(){
+  const [disc,setDisc]=useState(loadDisclaimers());
+  const form45Keys=Object.keys(disc).filter(k=>k.startsWith("form45_"));
+  return React.createElement(React.Fragment,null,
+    React.createElement(InfoBox,{tone:"blue"},"All disclaimers & T&Cs can be edited here. Changes apply immediately across the app. SEBI updates will be reflected to all users without app redeploy."),
+    React.createElement(Sec,null,"Form 45 Terms & Conditions"),
+    form45Keys.map((key,i)=>
+      React.createElement("div",{key:key,style:{marginBottom:12}},
+        React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--ink3)",marginBottom:4}},"§"+String(i+1)),
+        React.createElement("textarea",{value:disc[key],onChange:e=>setDisc(p=>({...p,[key]:e.target.value})),style:{width:"100%",minHeight:"80px",padding:"9px 11px",border:"1px solid var(--border2)",borderRadius:8,fontFamily:"var(--font)",fontSize:11,lineHeight:1.5,outline:"none"}}),
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:12}},"Other Disclaimers"),
+    React.createElement("div",{style:{marginBottom:12}},
+      React.createElement("label",{style:{fontSize:10,fontWeight:700,color:"var(--ink3)",display:"block",marginBottom:4}},"Assay Disclaimer"),
+      React.createElement("textarea",{value:disc.assay_disclaimer,onChange:e=>setDisc(p=>({...p,assay_disclaimer:e.target.value})),style:{width:"100%",minHeight:"60px",padding:"9px 11px",border:"1px solid var(--border2)",borderRadius:8,fontFamily:"var(--font)",fontSize:11,outline:"none"}})
+    ),
+    React.createElement("div",{style:{marginBottom:12}},
+      React.createElement("label",{style:{fontSize:10,fontWeight:700,color:"var(--ink3)",display:"block",marginBottom:4}},"Extinguish Warning"),
+      React.createElement("textarea",{value:disc.extinguish_warning,onChange:e=>setDisc(p=>({...p,extinguish_warning:e.target.value})),style:{width:"100%",minHeight:"60px",padding:"9px 11px",border:"1px solid var(--border2)",borderRadius:8,fontFamily:"var(--font)",fontSize:11,outline:"none"}})
+    ),
+    React.createElement(Btn,{kind:"cobalt",onClick:()=>{saveDisclaimers(disc);alert("✅ Disclaimers saved. Changes apply immediately to all users.");}},`💾 Save all changes`),
+    React.createElement(Btn,{kind:"out",style:{marginTop:8},onClick:()=>setDisc(loadDisclaimers())},"Reset to saved")
+  );
+}
+
 function AdminISINs(){
   const[isins,setIsins]=useState(loadISINState);
   const[saved,setSaved]=useState(false);
@@ -3177,7 +3325,7 @@ function Admin({go,db,stats,requests}){
         )
       ),
       React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}},
-        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs"].map((t,i)=>
+        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs","Disclaimers"].map((t,i)=>
           React.createElement("button",{key:t,onClick:()=>setTab(i),style:{padding:"5px 11px",borderRadius:20,fontFamily:"var(--font)",fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${tab===i?"var(--cobalt)":"var(--border2)"}`,background:tab===i?"var(--cobalt)":"#fff",color:tab===i?"#fff":"var(--ink2)"}},t)
         )
       ),
@@ -3289,6 +3437,9 @@ function Admin({go,db,stats,requests}){
       ),
       tab===6&&React.createElement(React.Fragment,null,
         React.createElement(AdminISINs,null)
+      ),
+      tab===7&&React.createElement(React.Fragment,null,
+        React.createElement(AdminDisclaimers,null)
       )
     )
   );
