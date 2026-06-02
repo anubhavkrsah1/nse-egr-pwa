@@ -1051,17 +1051,26 @@ function saveDisclaimers(obj){localStorage.setItem("egr_disclaimers",JSON.string
 function getDisclaimer(key){return loadDisclaimers()[key]||DISCLAIMERS_DEFAULTS[key];}
 
 // ================================================================
-// DOCUMENT ACCESS CONTROL — Role-based visibility
-// Format: {depositId}:{docType} → {role1:true, role2:true, ...}
+// DOCUMENT MASTER — 6 Mandatory Documents (Auto-generated)
+// Documents are created as gold flows through supply chain
+// Visible to: Refiner, Vault Manager, NSDL (always), + specific roles
 // ================================================================
-const DOC_TYPES=["form45","depositLetter","pickupVaultLetter","releaseTransferLetter","packingList","indemnityLetter","authLetter"];
+const DOC_MASTER=[
+  {id:"form45", name:"Form 45 (EGR Deposit Request)", generatedAt:"deposit_start", issuedBy:"Depositor", requiredFor:"NSDL registration"},
+  {id:"packingList", name:"Gold Packing List", generatedAt:"refiner_receipt", issuedBy:"Refiner", requiredFor:"Vault acceptance"},
+  {id:"indemnityLetter", name:"Letter of Indemnity", generatedAt:"deposit_start", issuedBy:"Depositor/Refiner", requiredFor:"SEBI audit"},
+  {id:"authLetter", name:"Authorisation Letter", generatedAt:"if_representative", issuedBy:"Depositor", requiredFor:"Rep collection/delivery"},
+  {id:"vaultReceipt", name:"Vault Acceptance Certificate", generatedAt:"vault_confirmation", issuedBy:"Vault Manager", requiredFor:"EGR creation"},
+  {id:"settlementConfirm", name:"Settlement Confirmation", generatedAt:"dp_credit", issuedBy:"DP/NSDL", requiredFor:"Customer notification"},
+];
+const DOC_TYPES=["form45","packingList","indemnityLetter","authLetter","vaultReceipt","settlementConfirm"];
 const ROLE_VISIBILITY={
-  // Refiner, Vault, NSDL see ALL docs by default
+  // Refiner, Vault, NSDL see ALL docs automatically (no need to grant)
   refiner:DOC_TYPES,vault:DOC_TYPES,nsdl:DOC_TYPES,
-  // Others see subset
+  // Others see subset (requires depositor grant)
   collection:["form45","authLetter","packingList"],
   assayer:["form45","packingList"],
-  dp:["form45","depositLetter","releaseTransferLetter"],
+  dp:["form45","vaultReceipt","settlementConfirm"],
   pickup:["authLetter"],
 };
 function canViewDoc(role,depositId,docType){
@@ -1089,7 +1098,7 @@ function revokeDocAccess(depositId,docType,role){
 // ================================================================
 const NAV_GROUPS=[
   {group:"Depositor",items:[["login","🔐","Login"],["register","📝","Register"],["home","🏠","Home"],["create","➕","EGR Creation"],["track","📍","Track"],["notifs","🔔","Notifications"],["review","↩️","Review/Recall"],["payment","💳","Charges"],["extinguish","🔥","Extinguish"],["myDocs","🔒","My Documents"]]},
-  {group:"Documents",items:[["form45","📋","Form 45 (NSDL)"],["depositLetter","📄","Deposit Letter (Refiner→Vault)"],["pickupVaultLetter","🚚","Pickup & Vault Letter"],["releaseTransferLetter","🔄","Release & Transfer"],["packingList","📦","Gold Packing List"],["indemnityLetter","🛡️","Letter of Indemnity"],["authLetter","✍️","Authorisation Letter"]]},
+  {group:"Documents",items:[["form45","📋","Form 45 & Deposit Letter"],["packingList","📦","Gold Packing List"],["indemnityLetter","🛡️","Letter of Indemnity"],["authLetter","✍️","Authorisation Letter"],["pickupVaultLetter","🚚","Pickup & Vault Letter"],["releaseTransferLetter","🔄","Release & Transfer"]]},
   {group:"Info & Tools",items:[["flyer","🌟","Flyer"],["cert","📜","EGR+Share"],["journeys","🗺️","Journeys"],["roleMap","👥","Role Map"],["flowMap","🔀","Process Flow"],["whatsapp","💬","WhatsApp"],["grievance","📞","Grievance"]]},
   {group:"Roles",items:[["collection","🏢","Collection Centre"],["pickup","🛵","Pickup Exec"],["assayer","🔬","Assayer"],["refiner","🏭","Refiner"],["vault","🏦","Vault Manager"],["dp","🏦","DP (Broker/Participant)"],["nsdl","🏛️","NSDL (Depository)"],["admin","⚙️","Admin"]]},
 ];
@@ -1165,7 +1174,8 @@ function Form45({go}){
     React.createElement(NavBar,{onBack:()=>go("home"),title:"Form 45 — EGR Deposit Request",right:React.createElement("span",{style:{fontSize:10,color:"var(--ink3)",marginRight:8}},"Step "+(step+1)+"/3")}),
     React.createElement("div",{className:"doc-badge-row"},
       React.createElement("span",{className:"doc-role-badge"},"📋 Depositor fills"),
-      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--green)"}},"🏛️ DP → eDPAM"),
+      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--green)"}},"📄 = Deposit Letter (same doc)"),
+      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--cobalt)"}},"🏛️ DP → eDPAM"),
       React.createElement("span",{className:"doc-role-badge",style:{background:"var(--orange)"}},"🏦 Vault receives")
     ),
     step===0&&React.createElement("div",{className:"doc-wrap"},
@@ -2468,6 +2478,36 @@ function Cert({go,requests}){
 }
 
 // ================================================================
+// ================================================================
+// DEPOSITOR DOCUMENTS — Visible to Refiner, Vault, NSDL always
+// Shows all 6 mandatory documents for a depositor's EGR
+// ================================================================
+function DepositorDocuments({depositId}){
+  // Auto-generated docs based on workflow stage
+  const docs=[
+    {id:"form45",name:"Form 45",status:"✅ Submitted",stage:"deposit_start",generatedAt:"2026-05-19 10:30"},
+    {id:"packingList",name:"Gold Packing List",status:"✅ Generated",stage:"refiner_receipt",generatedAt:"2026-05-19 14:45"},
+    {id:"indemnityLetter",name:"Letter of Indemnity",status:"✅ Signed",stage:"deposit_start",generatedAt:"2026-05-19 10:35"},
+    {id:"authLetter",name:"Authorisation Letter",status:"✅ Verified",stage:"rep_delivery",generatedAt:"2026-05-19 11:00"},
+    {id:"vaultReceipt",name:"Vault Acceptance Certificate",status:"✅ Confirmed",stage:"vault_confirmation",generatedAt:"2026-05-19 16:20"},
+    {id:"settlementConfirm",name:"Settlement Confirmation",status:"✅ Received",stage:"dp_credit",generatedAt:"2026-05-19 T+1"},
+  ];
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,"6 Mandatory Documents (Auto-Generated)"),
+    docs.map(d=>React.createElement(Card,{key:d.id,style:{marginBottom:8}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+        React.createElement("div",null,
+          React.createElement("div",{style:{fontSize:12,fontWeight:700}},d.name),
+          React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},d.generatedAt),
+          React.createElement("div",{style:{fontSize:9,color:"var(--ink3)"}},`Stage: ${d.stage}`)
+        ),
+        React.createElement(Badge,{c:"green"},d.status.split(" ")[0])
+      )
+    )),
+    React.createElement(InfoBox,{tone:"green"},"✅ All 6 documents generated. Ready for EGR creation.")
+  );
+}
+
 // MY DOCUMENTS — Depositor manages document access for other roles
 // ================================================================
 function MyDocs({go,refreshData}){
@@ -2866,7 +2906,7 @@ function Refiner({go,db,refreshData}){
   }
   return React.createElement(RolePanel,{title:"Refiner portal",role:"Refiner"},
     React.createElement(InfoBox,null,"Parker Precious Metals LLP · confirms receipt, re-assays, refines and assigns denomination."),
-    React.createElement(Tabs,{tabs:["Incoming","Refining","Certified"],active:tab,onChange:setTab}),
+    React.createElement(Tabs,{tabs:["Incoming","Refining","Certified","Documents"],active:tab,onChange:setTab}),
     React.createElement(Card,null,
       React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:7}},
         React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:700}},"Consignment SEQ2034"),React.createElement("div",{style:{fontSize:10,color:"var(--ink3)"}},"From Andheri W · 24.0g · bar")),
