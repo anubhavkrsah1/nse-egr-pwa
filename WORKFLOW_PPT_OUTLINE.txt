@@ -1,0 +1,613 @@
+NSE GOOD GOLD EGR PWA — WORKFLOW PRESENTATION OUTLINE
+====================================================
+
+SLIDE 1: TITLE SLIDE
+───────────────────
+Title: NSE Good Gold EGR Platform
+Subtitle: Digital Gold Deposit Workflow
+Date: June 2, 2026
+Footer: Single-file PWA | Cloudflare Pages | Real-time Admin Controls
+
+
+SLIDE 2: WHAT IS EGR?
+────────────────────
+Bullet Points:
+• Electronic Gold Receipt — Dematerialized gold ownership
+• NSE Good Delivery Standard — 99.5% to 99.9% purity
+• 14 denominations (1mg to 1kg) in 2 purities (995 & 999)
+• Tradeable on NSE like securities
+• NSDL regulated, SEBI compliant
+• Monthly vaulting + insurance (automatic deduction)
+• Can be extinguished anytime for physical gold release
+
+Image: Gold bar stack with ISIN label
+
+
+SLIDE 3: 6 ACTORS IN WORKFLOW
+──────────────────────────────
+Visual: 6 boxes with roles
+1. Depositor (with gold)
+   └ KYC + Form 45 + Payment
+
+2. Collection Centre / Sequel
+   └ Pickup + Package
+
+3. Refiner (Parker/Augmont/GGC)
+   └ Assay + Heat-treat + Certify
+
+4. Vault Manager
+   └ Store in locker + Bar# verify
+
+5. DP / Broker (Zerodha/Grow)
+   └ eDPAM entry + Demat credit
+
+6. NSDL
+   └ Registry + EGR activation
+
+
+SLIDE 4: 6 MANDATORY DOCUMENTS
+───────────────────────────────
+Timeline view (left to right):
+1. Form 45 & Deposit Letter (same doc)
+   └ Depositor fills at start
+
+2. Gold Packing List
+   └ Refiner issues after assay
+
+3. Letter of Indemnity
+   └ Depositor signs at start
+
+4. Authorisation Letter
+   └ If representative delivers
+
+5. Vault Acceptance Certificate
+   └ Vault Manager issues
+
+6. Settlement Confirmation
+   └ DP/NSDL sends when credited
+
+Color: Green checkmarks for each stage
+
+
+SLIDE 5: WORKFLOW STAGES (3 PATHS)
+──────────────────────────────────
+Flowchart:
+
+PATH A: "From Home" (Residential Gold)
+  Start → Collection Centre → Refiner → Vault → DP → NSDL → Live
+
+PATH B: "From Refiner" (Already Refined)
+  Start → Refiner Warehouse → Vault → DP → NSDL → Live
+
+PATH C: "In-Vault" (Already Stored)
+  Start → (skip to) → Vault Confirmation → DP → NSDL → Live
+
+All paths merge at Vault confirmation
+Center color: Blue for "From Home", Orange for "From Refiner", Green for "In-Vault"
+
+
+SLIDE 6: DETAILED WORKFLOW — PHASE 1 & 2
+─────────────────────────────────────────
+Phase 1: Collection (Day 1)
+  • Depositor submits KYC (AADHAAR + PAN or PAN + CIN + GSTIN)
+  • Fills Form 45 (deposit request)
+  • Signs Letter of Indemnity
+  • Sequel picks up gold (if <50km serviceable)
+  • Photo proof + AWB generated
+  • Temporary receipt issued
+
+Phase 2: Assay (Day 2-3)
+  • Refiner receives gold
+  • Weighs & assays purity
+  • If <95% → reject & return
+  • If ≥95% → approve & generate Packing List
+  • Assign denominations (10g, 100g, 1kg, etc.)
+  • Issue assay certificate
+
+Cards: Light blue background for each phase
+
+
+SLIDE 7: DETAILED WORKFLOW — PHASE 3 & 4
+─────────────────────────────────────────
+Phase 3: Refining (Day 3-5, if needed)
+  • If purity 92-95% → Heat treat
+  • Parker Precious Metals / Augmont / GGC
+  • Output: 99.5% or 99.9% pure
+  • Assign bar numbers (>100g)
+  • Issue refined gold certificate
+
+Phase 4: Vaulting (Day 5-7)
+  • Vault Manager receives bars
+  • Physical verification:
+    - Weight check
+    - Bar number matching
+    - Aadhaar verification
+  • Store in high-security locker
+  • Generate Vault Acceptance Certificate
+
+Cards: Light orange background
+
+
+SLIDE 8: DETAILED WORKFLOW — PHASE 5 & 6
+─────────────────────────────────────────
+Phase 5: DP Entry (Day 7-8)
+  • DP logs into eDPAM system
+  • Enters Deposit Request Number (DRN)
+  • Credits ISIN units to demat account
+  • Example: 24g → 2×GOLD10G999 + 4×GOLD1G999
+  • Sends SMS/email confirmation
+  • Margin blocked (non-tradeable for 1 day)
+
+Phase 6: NSDL Registration (Day 8-10)
+  • NSDL verifies KYC
+  • Approves denomination
+  • Registers EGR in master registry
+  • ISIN goes LIVE
+  • Now tradeable on NSE
+  • Monthly charges auto-deduct
+
+Cards: Light purple background
+
+
+SLIDE 9: NSDL CHECKPOINT VALIDATION
+───────────────────────────────────
+3 Critical Checkpoints:
+
+[Checkpoint 1] AFTER Form 45
+  ✓ PAN verified in NSDL master
+  ✓ AADHAAR verified
+  ✓ No duplicate KYC
+  └→ If fail: Reject email + SMS
+
+[Checkpoint 2] AFTER Assay
+  ✓ Purity ≥ 95.0%?
+  ✓ Weight certified
+  ✓ Bar numbers unique
+  └→ If fail: Hold, request resample
+
+[Checkpoint 3] BEFORE LIVE
+  ✓ Demat account limit OK?
+  ✓ DP balance sufficient?
+  ✓ No existing duplicate ISINs
+  └→ If fail: Queue for next day
+
+Visual: Traffic light system (Red/Yellow/Green)
+
+
+SLIDE 10: 6-MONTH CHARGE EXAMPLE
+────────────────────────────────
+Input: Deposit 24g gold (99.9% purity)
+
+CHARGES BREAKDOWN:
+┌─────────────────────────────────┬─────────┐
+│ Charge                          │ Amount  │
+├─────────────────────────────────┼─────────┤
+│ Collection (one-time)           │ ₹500    │
+│ Assay (one-time)                │ ₹300    │
+│ Courier (one-time)              │ ₹200    │
+│ Processing Fee (one-time)       │ ₹500    │
+├─────────────────────────────────┼─────────┤
+│ Subtotal (One-time)             │ ₹1,500  │
+│ GST 3%                          │ ₹45     │
+│ Total (Month 0)                 │ ₹1,545  │
+├─────────────────────────────────┼─────────┤
+│ Vault: ₹25/g/month × 24g        │ ₹600/mo │
+│ Insurance: 0.15%/12 × ₹168k     │ ₹210/mo │
+│ Total Recurring                 │ ₹810/mo │
+├─────────────────────────────────┼─────────┤
+│ 6-month total                   │ ₹6,385  │
+└─────────────────────────────────┴─────────┘
+
+Final EGR Value: ₹168,000 - ₹6,385 = ₹161,615
+
+Chart: Pie chart showing charge composition
+
+
+SLIDE 11: RATE CARD ADMIN PANEL
+───────────────────────────────
+Admin Interface Screenshot:
+
+📊 RATE CARDS & CHARGES
+Configuration fields (editable):
+
+Collection & Assay:
+  Collection Charge       [500  ]  ₹
+  Assay Charge           [300  ]  ₹
+
+Refining & Vaulting:
+  Refining Charge        [150  ]  ₹/g
+  Vaulting Charge        [25   ]  ₹/g/month
+
+Insurance & Logistics:
+  Insurance              [0.15 ]  % p.a.
+  Courier Charge         [200  ]  ₹
+
+Transaction Charges:
+  Demat Credit           [100  ]  ₹
+  Extinguish             [200  ]  ₹
+
+Taxes & Regulatory:
+  GST Rate              [3.00 ]  %
+  Processing Fee        [500  ]  ₹
+
+[💾 Save Rate Cards] [🔄 Reset to Defaults]
+
+Highlight: "Updated immediately — no redeploy needed"
+
+
+SLIDE 12: KEY SLA & TIMELINES
+─────────────────────────────
+Phase Duration SLA:
+  Collection:    Same day (Alert >4 hours)
+  Assay:         T+1 day (Alert >2 days)
+  Vault:         T+2 days (Alert >3 days)
+  DP Entry:      T+3 days (Alert >4 days)
+  NSDL Approval: T+5 days (Alert >7 days)
+  ──────────────────────────
+  Total:         7-10 days to LIVE
+
+Monthly Charges:
+  Applied:       1st of every month
+  Payment due:   Before T+1
+  If unpaid:     EGR frozen (not tradeable)
+  Override:      Can only trade if current
+
+Timeline bar chart: Phase durations in days
+
+
+SLIDE 13: EXTINGUISH FLOW
+─────────────────────────
+Irreversible Process (⚠️ Cannot undo)
+
+Start → Depositor requests extinguish
+
+  ↓
+Calculate GST:
+  Gold value: 24g × ₹7,000 = ₹168,000
+  GST 3%:                  ₹5,040
+
+  ↓
+Depositor pays GST (₹5,040)
+
+  ↓
+Vault releases gold to Refiner
+
+  ↓
+Refiner ships to:
+  • Depositor's address, OR
+  • Collection centre
+
+  ↓
+NSDL marks EGR as EXTINGUISHED
+
+  ↓
+✅ FINAL (No recovery possible)
+
+Color warning: Red background for "Irreversible"
+
+
+SLIDE 14: ERROR RECOVERY
+────────────────────────
+Common Issues & Resolution:
+
+❌ ISSUE 1: Purity < 95%
+  └ Action: Send to resampling
+  └ If still fail: Return to depositor
+  └ Refund: All charges except refining
+
+❌ ISSUE 2: Bar Number Mismatch
+  └ Action: Audit trail initiated
+  └ Vault rejects batch
+  └ Hold gold, contact depositor
+
+❌ ISSUE 3: DRN Pending >7 Days
+  └ Action: NSE escalates to DP
+  └ SMS sent to depositor
+  └ Refund collection charges if >14 days
+
+❌ ISSUE 4: Monthly Charges Not Paid
+  └ Action: EGR frozen (frozen icon 🔒)
+  └ Cannot trade
+  └ Auto-unfreeze when paid
+
+Color: Orange boxes for each issue
+
+
+SLIDE 15: ADMIN PORTAL OVERVIEW
+───────────────────────────────
+Tabs: [Roles] [Approvals] [Users] [Mail] [Trades] [Orders] [ISINs] [Disclaimers] [Rate Cards]
+
+Current Implementations:
+✅ ISINs — Enable/disable per ISIN
+           5 capability flags (pickup, delivery, tradeable, creating, extinguish)
+
+✅ Disclaimers — Editable T&Cs for Form 45 (§1-15)
+                 Assay disclaimer
+                 Extinguish warning
+                 Updates live (no redeploy)
+
+✅ Rate Cards — All charges configurable
+               Collection, Assay, Refining, Vaulting, Insurance
+               Demat Credit, Extinguish, GST, Processing Fee
+               Auto-applied in calculations
+
+Future (Backlog):
+🔄 Approvals — Approve pending deposits
+🔄 Users — Manage admin accounts
+🔄 Mail — Trigger email notifications
+🔄 Trades — Monitor EGR trading activity
+
+
+SLIDE 16: PLATFORM ARCHITECTURE
+───────────────────────────────
+Single-File PWA Architecture:
+
+┌──────────────────────────────────────────────────┐
+│         index.html (366 KB self-contained)       │
+│                                                  │
+│  ┌────────────────────────────────────────────┐  │
+│  │ HTML5 + CSS3 (inline)                      │  │
+│  │ React 18 (minified, inline)                │  │
+│  │ React-DOM 18 (minified, inline)            │  │
+│  │ All components (inline)                    │  │
+│  │ Service Worker (inline registration)       │  │
+│  │ Database simulation (localStorage)         │  │
+│  └────────────────────────────────────────────┘  │
+│                                                  │
+│  Deployment:                                    │
+│    ☁️  Cloudflare Pages (instant global CDN)   │
+│    🐙 GitHub Pages (git push auto-deploy)      │
+│    📱 Works offline (PWA with service worker)   │
+│                                                  │
+│  Updates:                                       │
+│    🚀 Green banner when new version available   │
+│    Auto-update on app restart                   │
+└──────────────────────────────────────────────────┘
+
+
+SLIDE 17: KYC REGISTRATION
+──────────────────────────
+Two Paths:
+
+INDIVIDUAL:
+  Step 1: Select entity type → "Individual"
+  Step 2: Enter personal details
+    AADHAAR: [12-digit number]
+    PAN:     [10-char code]
+    Name:    [Full name]
+    Email:   [Email address]
+    Bank:    [Account number]
+  Step 3: OTP verification (via SMS/Email)
+    Verify OTP: [6-digit]
+  Result: KYC Verified ✅
+
+COMPANY:
+  Step 1: Select entity type → "Company"
+  Step 2: Enter company details
+    PAN:     [10-char code]
+    CIN:     [21-digit ID]
+    GSTIN:   [15-char code]
+    Name:    [Company name]
+    Email:   [Official email]
+  Step 3: OTP verification
+  Result: KYC Verified ✅
+
+Highlight: Dual-path KYC for individual & corporate
+
+
+SLIDE 18: FORM 45 SUBMISSION
+────────────────────────────
+3-Step Wizard:
+
+STEP 1: Account Details & ISIN Selection
+  • Select which ISIN to create
+  • Choose gold source:
+    - From me (home pickup via Sequel)
+    - From refiner (warehouse)
+    - In vault (no collection needed)
+  • Select vault destination (auto-nearest based on pincode)
+
+STEP 2: T&C Acceptance (Paginated)
+  Read and accept 15 T&C clauses:
+    §1: Gold authenticity confirmation
+    §2: Workflow completion required
+    §3: Free from encumbrance
+    §4: Vault procedures acknowledgement
+    ...§15: Dispute resolution
+  [Next] [Previous] buttons
+  ☑️ I agree to all terms
+
+STEP 3: Participant Authorization
+  Confirm participant (DP/Broker)
+  Signature: Digital (OTP)
+  Submit Form 45
+
+Result: DRN generated, workflow starts
+
+
+SLIDE 19: DEPOSITOR DASHBOARD
+─────────────────────────────
+My EGRs (Active List):
+
+┌────────────────────────────────────────────┐
+│ EGR20240519001 | GOLD10G999 × 2 | ₹168,000  │
+│ Created: May 19 | Vault: Mumbai-West      │
+│ Status: LIVE ✅ | Balance: 20g            │
+│ Last Charge: June 1 (₹810)                │
+│                                            │
+│ [View Documents] [Track] [Charges] [Sell] │
+│ [Extinguish ⚠️]                           │
+└────────────────────────────────────────────┘
+
+Documents (6 mandatory):
+  ✅ Form 45 & Deposit Letter
+  ✅ Gold Packing List
+  ✅ Letter of Indemnity
+  ✅ Authorisation Letter
+  ✅ Vault Acceptance Cert
+  ✅ Settlement Confirmation
+
+Actions:
+  • Download any document
+  • Grant access to roles (Collection Centre, Assayer, DP, Refiner, Vault, NSDL)
+  • View document audit trail
+
+
+SLIDE 20: MONTHLY BILLING
+─────────────────────────
+Auto-Deduction System:
+
+Month 1 (June):
+  ├─ Vault: 24g × ₹25/month = ₹600
+  ├─ Insurance: 0.15%/12 × ₹168k = ₹210
+  ├─ GST: 3% × (₹600+₹210) = ₹24
+  └─ Total deducted: ₹834
+
+Month 2 (July):
+  ├─ Vault: ₹600
+  ├─ Insurance: ₹210
+  ├─ GST: ₹24
+  └─ Total: ₹834
+
+If no payment:
+  └─ EGR status: 🔒 FROZEN (not tradeable)
+  └─ SMS reminder: "Pay ₹834 to activate"
+  └─ After 7 days: Interest 1% per month
+
+Payment methods:
+  • Demat margin debit
+  • Direct bank transfer
+  • Cheque deposit
+  • UPI (via DP)
+
+
+SLIDE 21: TECHNOLOGY STACK
+──────────────────────────
+Frontend:
+  • React 18.2 (functional components, hooks)
+  • CSS3 (grid, flexbox, custom properties)
+  • Service Worker (offline + caching)
+  • PWA manifest (installable)
+
+Backend:
+  • localStorage (client-side DB simulation)
+  • No backend server (static deployment)
+  • Cloudflare Pages (CDN + edge functions)
+  • GitHub Pages (git-based deployment)
+
+Integration Ready:
+  • DAN API (NSDL depositor registration)
+  • eDPAM API (DP system entry)
+  • Email service (notifications)
+  • SMS gateway (OTP + alerts)
+  • Bank API (charge deductions)
+
+Deployment:
+  • Single HTML file (366 KB)
+  • Zero build step (pure HTML/CSS/JS)
+  • Instant global distribution
+  • Automatic versioning
+
+
+SLIDE 22: ROADMAP & FUTURE
+──────────────────────────
+Q2 2026 (Current):
+  ✅ PWA MVP
+  ✅ KYC registration
+  ✅ Form 45 wizard
+  ✅ Admin controls (ISIN, Disclaimers, Rate Cards)
+  ✅ Document access control
+  ✅ Workflow diagram
+
+Q3 2026:
+  🔄 Monthly billing system
+  🔄 Charge deduction API
+  🔄 Out-of-pocket expense tracking
+  🔄 Email/SMS notifications
+  🔄 Demand request tracker
+
+Q4 2026:
+  🔄 RTA intimation (to registrar)
+  🔄 Brinks logistics integration
+  🔄 Real-time trading feed
+  🔄 Mobile app (iOS/Android)
+
+2027:
+  🔄 Institutional depositors
+  🔄 Bulk EGR operations
+  🔄 Gold lending marketplace
+  🔄 International EGR (London, Dubai)
+
+
+SLIDE 23: SUMMARY & KEY METRICS
+───────────────────────────────
+✅ COMPLETED:
+  • Single-file, zero-dependency PWA
+  • 14 ISIN support (1mg to 1kg, 995/999 purity)
+  • 6 mandatory documents (auto-generated)
+  • KYC (Individual + Company)
+  • Form 45 + 3-step wizard
+  • Admin portal (ISINs, Disclaimers, Rate Cards)
+  • Role-based document access
+  • Workflow visualization
+  • Offline capability (service worker)
+
+📊 APP STATS:
+  • Single file size: 366 KB
+  • Dependencies: 0 external (all inline)
+  • Load time: <2 seconds (Cloudflare CDN)
+  • Offline: Fully functional
+  • Browser support: Chrome, Safari, Firefox, Edge
+  • Mobile: Responsive, installable PWA
+
+🌐 DEPLOYMENT:
+  ☁️  https://nse-egr-pwa.pages.dev
+  🐙 https://anubhavkrsah1.github.io/nse-egr-pwa/
+
+👥 ROLES SUPPORTED:
+  • Depositor (gold owner)
+  • Collection Centre / Logistics
+  • Refiner (Parker, Augmont, GGC)
+  • Vault Manager
+  • DP / Broker
+  • NSDL
+  • Admin (configure ISINs, rates, T&Cs)
+
+📋 DOCUMENTS: 6 mandatory + 1 optional
+
+
+SLIDE 24: CONTACT & SUPPORT
+───────────────────────────
+NSE EGR Platform Support:
+
+📧 Email: nseegr@nse.co.in
+📞 Phone: 1800-NSE-GOLD (toll-free)
+💬 WhatsApp: +91 8000-GOLD-NSE
+
+Platform:
+  GitHub: github.com/anubhavkrsah1/nse-egr-pwa
+  Live: https://nse-egr-pwa.pages.dev
+  Issues: github.com/anubhavkrsah1/nse-egr-pwa/issues
+
+Admin Access:
+  Role: admin
+  Tabs: ISINs | Disclaimers | Rate Cards | ... (more coming)
+  Updates: Live (no redeploy needed)
+
+Questions?
+  Rate cards, charges, workflows, integrations, roadmap
+
+
+═════════════════════════════════════════════════════════
+END OF PRESENTATION
+═════════════════════════════════════════════════════════
+
+NOTES FOR PRESENTER:
+- Emphasize the 6-phase workflow is automated, not manual
+- Rate cards are admin-configurable (no code changes)
+- All documents auto-generated as gold flows through supply chain
+- Monthly charges auto-deduct (transparent billing)
+- NSDL has 3 checkpoints for compliance
+- Single PWA file enables instant global deployment
+- Offline capability ensures service continuity
+- Zero infrastructure costs (Cloudflare + GitHub free tier)

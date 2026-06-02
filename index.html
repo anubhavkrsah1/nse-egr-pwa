@@ -3365,7 +3365,7 @@ function Admin({go,db,stats,requests}){
         )
       ),
       React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}},
-        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs","Disclaimers"].map((t,i)=>
+        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs","Disclaimers","Rate Cards"].map((t,i)=>
           React.createElement("button",{key:t,onClick:()=>setTab(i),style:{padding:"5px 11px",borderRadius:20,fontFamily:"var(--font)",fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${tab===i?"var(--cobalt)":"var(--border2)"}`,background:tab===i?"var(--cobalt)":"#fff",color:tab===i?"#fff":"var(--ink2)"}},t)
         )
       ),
@@ -3480,6 +3480,128 @@ function Admin({go,db,stats,requests}){
       ),
       tab===7&&React.createElement(React.Fragment,null,
         React.createElement(AdminDisclaimers,null)
+      ),
+      tab===8&&React.createElement(React.Fragment,null,
+        React.createElement(AdminRateCards,null)
+      )
+    )
+  );
+}
+
+// ================================================================
+// ADMIN RATE CARDS — NSE charges configuration
+// ================================================================
+function AdminRateCards(){
+  const RATE_DEFAULTS={
+    collection:500,assay:300,refining:150,vaulting:25,insurance:0.15,
+    courier:200,dematCredit:100,extinguish:200,gst:0.03,processingFee:500
+  };
+  const [rates,setRates]=useState(()=>{
+    const saved=localStorage.getItem("RATE_CARDS");
+    return saved?JSON.parse(saved):RATE_DEFAULTS;
+  });
+  const save=()=>{
+    localStorage.setItem("RATE_CARDS",JSON.stringify(rates));
+    alert("✅ Rate cards saved!");
+  };
+  const reset=()=>{
+    setRates(RATE_DEFAULTS);
+    localStorage.setItem("RATE_CARDS",JSON.stringify(RATE_DEFAULTS));
+    alert("✅ Reset to defaults");
+  };
+  const updateRate=(key,val)=>{
+    const n=parseFloat(val)||0;
+    setRates(r=>({...r,[key]:n}));
+  };
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,"💳 Rate Cards & Charges"),
+    React.createElement(InfoBox,null,"Configure NSE EGR charges. Applied automatically in workflow. Updated immediately without redeploy."),
+    React.createElement(Sec,{style:{marginTop:10}},"Collection & Assay"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Collection Charge (₹)"),
+          React.createElement("input",{type:"number",value:rates.collection,onChange:e=>updateRate("collection",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Assay Charge (₹)"),
+          React.createElement("input",{type:"number",value:rates.assay,onChange:e=>updateRate("assay",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:10}},"Refining & Vaulting"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Refining Charge (₹/g)"),
+          React.createElement("input",{type:"number",step:"0.1",value:rates.refining,onChange:e=>updateRate("refining",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Vaulting Charge (₹/g/month)"),
+          React.createElement("input",{type:"number",step:"0.01",value:rates.vaulting,onChange:e=>updateRate("vaulting",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:10}},"Insurance & Logistics"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Insurance (% per annum)"),
+          React.createElement("input",{type:"number",step:"0.01",value:rates.insurance,onChange:e=>updateRate("insurance",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Courier Charge (₹)"),
+          React.createElement("input",{type:"number",value:rates.courier,onChange:e=>updateRate("courier",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:10}},"Transaction Charges"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Demat Credit (₹)"),
+          React.createElement("input",{type:"number",value:rates.dematCredit,onChange:e=>updateRate("dematCredit",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Extinguish (₹)"),
+          React.createElement("input",{type:"number",value:rates.extinguish,onChange:e=>updateRate("extinguish",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:10}},"Taxes & Regulatory"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"GST Rate (% on charges)"),
+          React.createElement("input",{type:"number",step:"0.01",value:rates.gst,onChange:e=>updateRate("gst",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Processing Fee (₹)"),
+          React.createElement("input",{type:"number",value:rates.processingFee,onChange:e=>updateRate("processingFee",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+    React.createElement(Sec,{style:{marginTop:10}},"Actions"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement(Btn,{kind:"green",onClick:save},"💾 Save Rate Cards"),
+        React.createElement(Btn,{kind:"orange",onClick:reset},"🔄 Reset to Defaults")
+      )
+    ),
+    React.createElement(Card,{style:{background:"var(--paper2)"}},
+      React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",lineHeight:1.6}},
+        React.createElement("strong",null,"Applied In Workflow:"),
+        React.createElement("div",{style:{marginTop:6}},
+          "• Deposit: collection + assay + refining (if needed) + processing fee + GST",
+          React.createElement("br",null),
+          "• Monthly: vaulting + insurance (proportional)"
+        ),
+        React.createElement("br",null),
+        React.createElement("br",null),
+        React.createElement("strong",null,"Last Updated:"),
+        React.createElement("div",{style:{marginTop:3,fontFamily:"var(--mono)"}},
+          new Date().toLocaleString()
+        )
       )
     )
   );
