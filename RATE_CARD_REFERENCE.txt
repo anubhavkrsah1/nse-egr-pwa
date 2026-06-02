@@ -1,0 +1,319 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              NSE GOOD GOLD EGR — RATE CARD REFERENCE                          ║
+║                         (Admin Configurable)                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+CURRENT RATE CARD (2026-06-02)
+═════════════════════════════════════════════════════════════════════════════════
+
+┌─ ONE-TIME CHARGES ─────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Collection Charge ............................ ₹500 (per deposit)         │
+│  Assay Charge ................................ ₹300 (per assay)           │
+│  Refining Charge ............................. ₹150/gram (if <95% purity) │
+│  Courier Charge .............................. ₹200 (per shipment)        │
+│  Demat Credit ................................ ₹100 (per ISIN credit)     │
+│  Processing Fee .............................. ₹500 (flat fee)             │
+│  Extinguish .................................. ₹200 (per extinguish)      │
+│                                                                             │
+│                                    SUBTOTAL ...... ₹1,900 (max)             │
+│                                    GST (3%) ...... ₹57                     │
+│                                    TOTAL ......... ₹1,957                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ MONTHLY RECURRING CHARGES ────────────────────────────────────────────────┐
+│                                                                             │
+│  Vault Storage .......................... ₹25/gram/month                    │
+│    Example: 24g × ₹25 = ₹600/month                                       │
+│                                                                             │
+│  Insurance ......................... 0.15% per annum (= 0.0125%/month)     │
+│    Example: ₹168,000 × 0.0125% = ₹21/month                              │
+│                                                                             │
+│  GST on charges ................... 3% of (Vault + Insurance)             │
+│    Example: (₹600 + ₹21) × 3% = ₹18.63/month                            │
+│                                                                             │
+│                            TOTAL MONTHLY ........ ₹639.63                 │
+│                                                                             │
+│  Note: Deducted automatically on 1st of month                             │
+│        Payment due before T+1 of next month                               │
+│        Non-payment → EGR frozen (not tradeable)                           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+WORKED EXAMPLE — 24g GOLD DEPOSIT
+═════════════════════════════════════════════════════════════════════════════════
+
+SCENARIO 1: HOME DEPOSIT (From residential address)
+────────────────────────────────────────────────────────────
+
+Input:
+  • 24g physical gold (99.9% purity)
+  • Residential address: Mumbai West (Andheri)
+  • Depositor: Individual (AADHAAR verified)
+  • ISIN Selected: GOLD10G999 (2 units) + GOLD1G999 (4 units)
+
+Day 0 (Deposit Day):
+  ├─ Form 45 submitted → DRN generated
+  ├─ Sequel schedules pickup (within serviceable 50km)
+  └─ Collection Charge: ₹500
+
+Day 1 (Collection):
+  ├─ Gold picked up, packaged, weighed
+  ├─ Sent to refiner (Parker Precious Metals)
+  └─ Temporary receipt issued
+
+Days 2-3 (Assay):
+  ├─ Refiner assays: 99.9% purity ✓
+  ├─ Generates Packing List
+  ├─ Assigns denominations: 10g + 10g + 1g + 1g + 1g + 1g
+  └─ Assay Charge: ₹300
+
+Days 4-5 (Refining):
+  ├─ Already 99.9% → minimal refining
+  ├─ Bar numbers assigned (>100g threshold not met)
+  └─ Refining Charge: ₹0 (already pure)
+
+Days 5-7 (Vaulting):
+  ├─ Sent to Mumbai-West Vault
+  ├─ Vault Manager verifies & stores
+  ├─ Generates Vault Acceptance Certificate
+  ├─ Aadhaar verification completed
+  └─ Vault Storage (1 month): ₹25 × 24g = ₹600
+
+Days 7-8 (DP Entry):
+  ├─ DP enters DRN in eDPAM
+  ├─ Credits demat: 2×GOLD10G999 + 4×GOLD1G999
+  └─ Demat Credit Charge: ₹100
+
+Days 8-10 (NSDL):
+  ├─ PAN/AADHAAR verified
+  ├─ Purity ≥95%? YES ✓
+  ├─ Demat limit OK? YES ✓
+  └─ ISIN status: LIVE ✓
+
+FINAL BILL (Month 0):
+  ┌─────────────────────────────────────────────┐
+  │ Collection ........................ ₹500     │
+  │ Assay ............................ ₹300     │
+  │ Refining ......................... ₹0       │
+  │ Vault (30 days) ................. ₹600     │
+  │ Insurance (30 days) ............. ₹21      │
+  │ Courier .......................... ₹200     │
+  │ Demat Credit ..................... ₹100     │
+  │ Processing Fee ................... ₹500     │
+  │ ─────────────────────────────────────────  │
+  │ Subtotal ........................ ₹2,221    │
+  │ GST (3%) ......................... ₹67      │
+  │ ────────────────────────────────────────── │
+  │ TOTAL MONTH 0 .................. ₹2,288    │
+  └─────────────────────────────────────────┘
+
+MONTHLY BILL (Month 1 onwards):
+  ┌─────────────────────────────────────────────┐
+  │ Vault (30 days) ................. ₹600     │
+  │ Insurance (30 days) ............. ₹21      │
+  │ ─────────────────────────────────────────  │
+  │ Subtotal ........................ ₹621     │
+  │ GST (3%) ......................... ₹19      │
+  │ ────────────────────────────────────────── │
+  │ TOTAL MONTHLY .................. ₹640      │
+  └─────────────────────────────────────────┘
+
+6-MONTH COST:
+  Month 0 (deposit): ₹2,288
+  Months 1-6: ₹640 × 6 = ₹3,840
+  ───────────────────────
+  Total 6-month: ₹6,128
+
+EGR Value (post-charges): ₹168,000 - ₹6,128 = ₹161,872
+
+
+SCENARIO 2: REFINER DEPOSIT (Already refined gold)
+──────────────────────────────────────────────────
+
+Input:
+  • 48g gold from Parker Precious Metals (already 99.9%)
+  • ISIN Selected: GOLD10G999 (4 units) + GOLD1G999 (8 units)
+  • Refiner warehouse → Direct to vault
+
+Day 0:
+  ├─ Form 45 submitted (source: "From Refiner")
+  └─ Processing Fee: ₹500
+
+Day 1 (Assay at Vault):
+  ├─ Vault receives from refiner warehouse
+  ├─ Spot-check assay: 99.9% ✓
+  ├─ No separate assay charge (bulk ceremony)
+  └─ Assay Charge: ₹0
+
+Days 1-2 (Vaulting):
+  ├─ Store in secure locker
+  ├─ Vault Storage (30 days): ₹25 × 48g = ₹1,200
+  └─ Vault Acceptance Certificate issued
+
+Days 2-3 (DP Entry):
+  ├─ DP credits demat: 4×GOLD10G999 + 8×GOLD1G999
+  └─ Demat Credit Charge: ₹100
+
+Days 3-5 (NSDL):
+  ├─ Verification (faster for refiner-sourced)
+  └─ ISIN status: LIVE ✓
+
+BILL (Month 0):
+  ┌─────────────────────────────────────────────┐
+  │ Assay ............................ ₹0       │
+  │ Vault (30 days) ................. ₹1,200   │
+  │ Insurance (30 days) ............. ₹42      │
+  │ Collection ....................... ₹0       │
+  │ Demat Credit ..................... ₹100     │
+  │ Processing Fee ................... ₹500     │
+  │ ─────────────────────────────────────────  │
+  │ Subtotal ........................ ₹1,842    │
+  │ GST (3%) ......................... ₹55      │
+  │ ────────────────────────────────────────── │
+  │ TOTAL MONTH 0 .................. ₹1,897    │
+  └─────────────────────────────────────────┘
+
+SAVINGS vs. Home deposit: ₹2,288 - ₹1,897 = ₹391 saved (17% cheaper)
+
+
+ADMIN RATE CARD CONFIGURATION
+═════════════════════════════════════════════════════════════════════════════════
+
+Accessible in: Admin Portal → Rate Cards tab
+
+Editable Fields:
+
+┌─────────────────────────────────┬──────────┬───────────────┐
+│ Field                           │ Unit     │ Default Value │
+├─────────────────────────────────┼──────────┼───────────────┤
+│ Collection Charge               │ ₹        │ 500           │
+│ Assay Charge                    │ ₹        │ 300           │
+│ Refining Charge                 │ ₹/gram   │ 150           │
+│ Vaulting Charge                 │ ₹/g/mon  │ 25            │
+│ Insurance Rate                  │ % p.a.   │ 0.15          │
+│ Courier Charge                  │ ₹        │ 200           │
+│ Demat Credit Charge             │ ₹        │ 100           │
+│ Extinguish Charge               │ ₹        │ 200           │
+│ GST Rate                        │ %        │ 3.00          │
+│ Processing Fee                  │ ₹        │ 500           │
+└─────────────────────────────────┴──────────┴───────────────┘
+
+Update Process:
+  1. Admin logs in as "admin" role
+  2. Navigates to "Rate Cards" tab
+  3. Edits desired fields
+  4. Clicks "💾 Save Rate Cards"
+  5. Changes saved to localStorage
+  6. ✅ Live immediately (no redeploy needed!)
+  7. Timestamp: Shows "Last Updated: YYYY-MM-DD HH:MM:SS"
+
+Reset Functionality:
+  • Click "🔄 Reset to Defaults"
+  • Reverts to original rates above
+  • Useful for testing or rollback
+
+
+RATE CARD VARIATIONS (FUTURE SCENARIOS)
+═════════════════════════════════════════════════════════════════════════════════
+
+Scenario A: PROMOTIONAL (Lower charges for deposits >100g)
+────────────────────────────────────────────────────────
+
+Collection Charge ............................ ₹250 (50% discount)
+Assay Charge ................................ ₹150 (50% discount)
+Processing Fee .............................. ₹250 (50% discount)
+Everything else: Same
+
+Impact: ₹600 → ₹385 (36% savings on deposit month)
+
+
+Scenario B: CORPORATE (Higher volume discounts)
+──────────────────────────────────────────────
+
+Vaulting Charge ............................. ₹15/g/month (40% discount)
+Insurance Rate ............................. 0.10% p.a. (33% discount)
+Demat Credit ............................... ₹50 (50% discount)
+
+Impact: Monthly ₹640 → ₹456 (29% savings)
+
+
+Scenario C: REGIONAL VARIATION (Different vaults)
+──────────────────────────────────────────────────
+
+Mumbai Vault:    ₹25/g/month (standard)
+Delhi Vault:     ₹20/g/month (cheaper land)
+Chennai Vault:   ₹30/g/month (premium security)
+Kolkata Vault:   ₹22/g/month (upcoming, promotional)
+
+Can be managed via:
+  • Separate rate cards per vault
+  • Or single rate card + vault multiplier
+  • UI enhancement in future
+
+
+AUDIT TRAIL
+═════════════════════════════════════════════════════════════════════════════════
+
+All rate card changes are logged with:
+  • Timestamp (2026-06-02 14:30:00)
+  • Admin username (admin)
+  • Field changed (e.g., "Vaulting from ₹25 → ₹20")
+  • Old value & new value
+  • Effective date
+
+Visible in: Admin Portal → Audit Log (future feature)
+
+
+ANNUAL COMPLIANCE
+═════════════════════════════════════════════════════════════════════════════════
+
+Rate cards must be:
+  ✓ Approved by NSE Finance Committee
+  ✓ Notified to depositors 30 days in advance
+  ✓ Published on NSE website
+  ✓ Logged with timestamp for audit
+  ✓ Locked (no changes) during regulatory review
+
+Process:
+  1. Proposed rate change → Finance Committee approval
+  2. 30-day notice to all active depositors (via SMS/Email)
+  3. Effective date: First of next month
+  4. Rate card locked (read-only) during review period
+  5. Audit report generated for SEBI
+
+
+PAYMENT GATEWAY INTEGRATION (FUTURE)
+═════════════════════════════════════════════════════════════════════════════════
+
+Monthly charges can be paid via:
+  1. Demat margin (auto-debit)
+  2. Bank transfer (manual payment)
+  3. Cheque deposit
+  4. UPI (via DP mobile app)
+  5. Credit card (3% surcharge)
+
+Integration points:
+  • Bank API for balance verification
+  • NSE Clearing Corp for margin allocation
+  • Payment gateway (Razorpay / PayU)
+  • Email receipt + PDF bill
+
+Status: Planned for Q3 2026
+
+
+═══════════════════════════════════════════════════════════════════════════════════
+DOCUMENT REVISION HISTORY
+═══════════════════════════════════════════════════════════════════════════════════
+
+Version 1.0 (2026-06-02) - Initial rate card
+  • Standard rates for Phase 1 metros
+  • 10 charge fields
+  • Admin configurable
+  • localStorage persistence
+
+Future updates: See /Users/apple/Downloads/egr-pwa/ROADMAP.md
+
+═══════════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,395 @@
+═════════════════════════════════════════════════════════════════════════════════════
+                   NSE GOOD GOLD EGR — VISUAL WORKFLOW GUIDE
+                              (For PowerPoint/Slides)
+═════════════════════════════════════════════════════════════════════════════════════
+
+
+GRAPHIC 1: 6-PHASE WORKFLOW (MAIN FLOW)
+════════════════════════════════════════════════════════════════════════════════════
+
+                                    ┌──────────────┐
+                                    │  DEPOSITOR   │
+                                    │  (KYC ready) │
+                                    └──────┬───────┘
+                                           │
+                         ┌─────────────────┼─────────────────┐
+                         │                 │                 │
+                    ┌────▼────┐      ┌────▼────┐      ┌────▼────┐
+                    │ HOME    │      │ REFINER │      │ IN-VAULT│
+                    │ (pickup)│      │ (direct)│      │ (stored)│
+                    └────┬────┘      └────┬────┘      └────┬────┘
+                         │                │                 │
+                ┌────────▼────────────────▼─────────────────▼────────┐
+                │                                                     │
+                │  PHASE 1: COLLECTION (Day 1)                      │
+                │  • Sequel pickup (50km serviceable)                │
+                │  • Package & weigh                                 │
+                │  • Generate AWB                                    │
+                │  • Temp receipt                                    │
+                │                                                     │
+                └────────────┬─────────────────────────────────────┘
+                             │
+                ┌────────────▼─────────────────────────────────────┐
+                │                                                   │
+                │  PHASE 2: ASSAY (Days 2-3)                       │
+                │  • Refiner: Purity test                          │
+                │  • Weight verification                           │
+                │  ✓ If ≥95% purity: CONTINUE                      │
+                │  ✗ If <95% purity: REJECT & RETURN              │
+                │  • Issue Packing List                            │
+                │  • Generate Assay Certificate                    │
+                │                                                   │
+                └────────────┬─────────────────────────────────────┘
+                             │
+        ┌────────────────────▼────────────────────────┐
+        │                                              │
+        ├─▶ 92-95% purity? YES                        │
+        │   ┌──────────────┐                          │
+        │   │ PHASE 3A:    │                          │
+        │   │ HEAT TREAT   │                          │
+        │   │ (Days 3-5)   │                          │
+        │   └──────┬───────┘                          │
+        │          │                                   │
+        ├─▶ ≥95% purity? SKIP PHASE 3                  │
+        │                                              │
+        │   ┌──────────────────┐                       │
+        │   │ Join here        │                       │
+        │   └──────┬───────────┘                       │
+        │          │                                   │
+        └──────────┼──────────────────────────────────┘
+                   │
+        ┌──────────▼──────────────────────────────────┐
+        │                                              │
+        │  PHASE 4: VAULTING (Days 5-7)              │
+        │  • Vault receives gold                      │
+        │  • Verify bar numbers (>100g)              │
+        │  • Aadhaar verification (depositor)        │
+        │  • Store in secure locker                  │
+        │  • Issue Vault Acceptance Cert             │
+        │  ✓ Vault Manager sign-off                  │
+        │                                              │
+        └──────────┬──────────────────────────────────┘
+                   │
+        ┌──────────▼──────────────────────────────────┐
+        │                                              │
+        │  PHASE 5: DP ENTRY (Days 7-8)              │
+        │  • DP logs into eDPAM system               │
+        │  • Enters DRN (Deposit Request No.)        │
+        │  • Credits demat account:                  │
+        │    2×GOLD10G999 + 4×GOLD1G999             │
+        │  • SMS/Email confirmation sent            │
+        │  • Margin blocked (T+1)                    │
+        │                                              │
+        └──────────┬──────────────────────────────────┘
+                   │
+        ┌──────────▼──────────────────────────────────┐
+        │                                              │
+        │  PHASE 6: NSDL REGISTRATION (Days 8-10)   │
+        │  ✓ PAN verified                            │
+        │  ✓ AADHAAR verified                        │
+        │  ✓ Purity ≥95%                             │
+        │  ✓ Demat limit OK                          │
+        │  → ISIN GOES LIVE                          │
+        │  → EGR tradeable on NSE                    │
+        │  → Monthly charges auto-deduct             │
+        │                                              │
+        └──────────┬──────────────────────────────────┘
+                   │
+                   ▼
+        ╔════════════════════════════════════════════╗
+        ║  ✅ EGR LIVE & TRADEABLE                  ║
+        ║  Monthly vaulting: ₹600/month             ║
+        ║  Insurance: ₹21/month                     ║
+        ║  Can trade anytime                        ║
+        ║  Can extinguish anytime (⚠️ irreversible) ║
+        ╚════════════════════════════════════════════╝
+
+
+GRAPHIC 2: 3 ENTRY PATHS (SIDE-BY-SIDE)
+════════════════════════════════════════════════════════════════════════════════════
+
+PATH A: FROM HOME                    PATH B: FROM REFINER              PATH C: IN-VAULT
+─────────────────────────────────────────────────────────────────────────────────────
+
+    Depositor (Home)                  Parker Precious Metals             Already stored
+           │                                  │                              │
+           │                                  │                              │
+      [Collect]                          [Direct receive]              [Vault only]
+           │                                  │                              │
+           ▼                                  ▼                              ▼
+     Sequel Pickup                      [Refiner assay]                [Skip to vault]
+    Weigh & Package                    Check purity ≥95%               Direct entry
+     AWB issued
+           │                                  │                              │
+           │ (T+0)                           │ (T+0)                         │ (T+0)
+           │                                  │                              │
+           ▼                                  ▼                              ▼
+    [Refiner Assay]                   [Vault Confirmation]          [Vault Confirmation]
+    ≥95% Purity? ✓                     Bar # verify                   Bar # verify
+    Packing List                       Aadhaar verify                 Aadhaar verify
+           │ (T+1)                           │ (T+1)                         │ (T+0)
+           │                                  │                              │
+      IF <95%:                             │                                │
+      └─▶ Return                             │                              │
+          Refund                             │                              │
+                                             │                              │
+      IF 92-95%:                             │                              │
+      └─▶ Heat treat                        │                              │
+          (Parker)                           │                              │
+          (T+2)                              │                              │
+           │                                  │                              │
+           └─────────┐                        │                              │
+                     │                        │                              │
+                     ▼                        ▼                              ▼
+              [All converge: Vault Acceptance]
+                     │ (T+2 to T+5)
+                     │
+                     ▼
+                 [DP Entry]
+               (eDPAM credit)
+                     │ (T+3)
+                     │
+                     ▼
+              [NSDL Approval]
+                     │ (T+5)
+                     │
+                     ▼
+              ✅ LIVE EGR
+
+
+GRAPHIC 3: NSDL CHECKPOINTS (TRAFFIC LIGHT)
+════════════════════════════════════════════════════════════════════════════════════
+
+                            Form 45 Submitted
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │                             │
+                    │   [NSDL CHECKPOINT 1]       │
+                    │                             │
+                    ├─→ PAN in NSDL master?       │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    ├─→ AADHAAR verified?         │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    ├─→ No duplicate KYC?        │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    └──────────────┬──────────────┘
+                                   │
+                            ✓ PASS / ✗ REJECT
+                                   │
+                            Assay Complete
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │                             │
+                    │   [NSDL CHECKPOINT 2]       │
+                    │                             │
+                    ├─→ Purity ≥95.0%?           │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    ├─→ Weight certified?        │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    ├─→ Bar numbers unique?      │
+                    │   ✓ YES / ✗ NO              │
+                    │                             │
+                    └──────────────┬──────────────┘
+                                   │
+                            ✓ PASS / ✗ HOLD
+                                   │
+                          DP Entry (eDPAM)
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │                             │
+                    │   [NSDL CHECKPOINT 3]       │
+                    │                             │
+                    ├─→ Demat limit OK?          │
+                    │   ✓ YES / ✗ QUEUE          │
+                    │                             │
+                    ├─→ DP balance sufficient?   │
+                    │   ✓ YES / ✗ REJECT         │
+                    │                             │
+                    ├─→ No duplicate ISINs?      │
+                    │   ✓ YES / ✗ REJECT         │
+                    │                             │
+                    └──────────────┬──────────────┘
+                                   │
+                            ✓ APPROVE
+                                   │
+                                   ▼
+                    ╔═════════════════════════╗
+                    ║  ✅ EGR LIVE            ║
+                    ║  Tradeable on NSE       ║
+                    ║  Charges auto-deduct    ║
+                    ╚═════════════════════════╝
+
+
+GRAPHIC 4: CHARGE FLOW (WATERFALL DIAGRAM)
+════════════════════════════════════════════════════════════════════════════════════
+
+                        DEPOSITOR SUBMITS 24G GOLD
+                                   │
+                ┌──────────────────┼──────────────────┐
+                │                  │                  │
+         COLLECTION         ASSAY            VAULTING (Monthly)
+         ┌─────────┐       ┌────────┐       ┌──────────────┐
+         │ ₹500    │       │ ₹300   │       │ ₹600         │
+         │ ─────   │       │ ─────  │       │ ────         │
+         │Courier  │       │Assay   │       │Vault: 24g×₹25│
+         │(₹200)   │       │        │       │Insurance: ₹21│
+         │         │       │        │       │              │
+         │Demat    │       │        │       │ Monthly      │
+         │(₹100)   │       │        │       │ from Month 1 │
+         │         │       │        │       │              │
+         │Process  │       │        │       │              │
+         │(₹500)   │       │        │       │              │
+         │         │       │        │       │              │
+         │Refining │       │        │       │              │
+         │(₹0)     │       │        │       │              │
+         └─────────┘       └────────┘       └──────────────┘
+                │              │                  │
+                │  ┌───────────┘                  │
+                │  │                              │
+                └──┼──────────────┬───────────────┘
+                   │              │
+              SUBTOTAL       GST (3%)
+              ┌─────────┐    ┌──────┐
+              │ ₹1,900  │    │ ₹57  │
+              │ (Month 0│    │      │
+              │ one-time│    │      │
+              │ charges)│    │      │
+              └────┬────┘    └──┬───┘
+                   │           │
+                   └─────┬─────┘
+                         │
+                    ╔════▼═══════╗
+                    ║ TOTAL M0   ║
+                    ║ ₹1,957     ║
+                    ╚════════════╝
+
+              (+ ₹640/month for Months 1-6)
+
+
+GRAPHIC 5: DOCUMENT TIMELINE
+════════════════════════════════════════════════════════════════════════════════════
+
+DAY 0        DAY 1        DAY 2-3      DAY 3-5      DAY 5-7      DAY 7-8      DAY 8-10
+├────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼─────────┤
+│            │            │            │            │            │            │         │
+│ Form 45    │ Collection │ Assay      │ Refine     │ Vault      │ DP Entry   │ NSDL    │
+│ + Indemnity│ (Sequel)   │ (Refiner)  │ (if need)  │ (Storage)  │ (eDPAM)    │ Approval│
+│            │            │            │            │            │            │         │
+│ 📋 + 🛡️   │ 🚚         │ 🔬 📦      │ 🔥         │ 🏦 ✅      │ 💻 ✅      │ 🏛️ ✅   │
+│            │            │            │            │            │            │         │
+│   Doc 1,3  │ Doc auto   │ Doc 2      │ Doc 2      │ Doc 5      │ Doc 6      │ All     │
+│            │ generated  │ generated  │ updated    │ generated  │ generated  │ visible │
+│            │            │            │            │            │            │         │
+└────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴─────────┘
+
+WHERE:
+  Doc 1 = Form 45 & Deposit Letter (Depositor fills)
+  Doc 2 = Gold Packing List (Refiner generates)
+  Doc 3 = Letter of Indemnity (Depositor fills)
+  Doc 4 = Authorisation Letter (If rep delivers)
+  Doc 5 = Vault Acceptance Certificate (Vault Mgr signs)
+  Doc 6 = Settlement Confirmation (DP/NSDL sends)
+
+
+GRAPHIC 6: ADMIN RATE CARD (CONTROL PANEL)
+════════════════════════════════════════════════════════════════════════════════════
+
+                    ┌─────────────────────────────┐
+                    │   ADMIN RATE CARD CONTROL   │
+                    │     (Zero redeploy needed)  │
+                    └──────────────┬──────────────┘
+                                   │
+            ┌──────────────────────┼──────────────────────┐
+            │                      │                      │
+       ┌────▼──────┐          ┌────▼──────┐         ┌────▼──────┐
+       │ COLLECTION│          │   REFINING│         │  VAULTING │
+       │   CHARGES │          │  CHARGES  │         │  CHARGES  │
+       ├───────────┤          ├───────────┤         ├───────────┤
+       │ Collection│          │ Refining: │         │ Vault:    │
+       │    ₹500   │          │ ₹150/g    │         │ ₹25/g/mo  │
+       │           │          │           │         │           │
+       │ Assay:    │          │ Courier:  │         │ Insurance:│
+       │   ₹300    │          │  ₹200     │         │ 0.15% p.a.│
+       │           │          │           │         │           │
+       │ Demat:    │          │ Processing│         │ Extinguish│
+       │   ₹100    │          │  ₹500     │         │  ₹200     │
+       │           │          │           │         │           │
+       │ GST 3%    │          │ GST 3%    │         │ GST 3%    │
+       └────┬──────┘          └────┬──────┘         └────┬──────┘
+            │                      │                      │
+            └──────────────────────┼──────────────────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │  [💾 SAVE CHANGES]  │
+                        │   [🔄 RESET]       │
+                        └──────────┬──────────┘
+                                   │
+                        ✅ LIVE IMMEDIATELY
+                        (localStorage update)
+
+                No code changes. No redeploy.
+            Changes apply to all new deposits instantly.
+
+
+GRAPHIC 7: ACTOR INTERACTION MAP
+════════════════════════════════════════════════════════════════════════════════════
+
+                              DEPOSITOR
+                            (gold owner)
+                                 │
+                 ┌───────────────┼───────────────┐
+                 │               │               │
+            ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
+            │COLLECTION   │ REFINER  │    │ VAULT   │
+            │CENTRE/      │(Parker/) │    │ MANAGER │
+            │SEQUEL       │Augmont   │    │         │
+            └────┬────┘    └────┬────┘    └────┬────┘
+                 │              │               │
+                 │ pickup       │ assay         │ store
+                 │ package      │ refine        │ verify
+                 │              │ certify       │ sign-off
+                 │              │               │
+                 └──────────────┼───────────────┘
+                                │
+                           ┌────▼────┐
+                           │   DP    │
+                           │(Broker) │
+                           │ Zerodha │
+                           └────┬────┘
+                                │
+                           DP entry
+                           eDPAM credit
+                                │
+                           ┌────▼────┐
+                           │  NSDL   │
+                           │ Registry│
+                           │ Master  │
+                           └────┬────┘
+                                │
+                        ✅ EGR LIVE & TRADEABLE
+                                │
+                      ┌─────────┼─────────┐
+                      │         │         │
+                  ┌───▼──┐ ┌────▼─┐ ┌───▼──┐
+                  │ TRADE│ │HOLD  │ │EXIT: │
+                  │on NSE│ │Vault │ │Extng │
+                  └──────┘ └──────┘ └──────┘
+
+
+═════════════════════════════════════════════════════════════════════════════════════
+FOR POWERPOINT USAGE:
+- Copy each GRAPHIC section
+- Paste into PowerPoint slide as text or image
+- Adjust colors: Blue (process), Green (success), Red (alert), Orange (warning)
+- Each graphic = 1 slide in presentation
+- Add speaker notes from WORKFLOW.md
+
+ESTIMATED SLIDE COUNT: 7 graphics = 7 slides (base)
+WITH NARRATIVES: 7 + 15-20 detail slides = ~22-27 slides total
+
+═════════════════════════════════════════════════════════════════════════════════════
