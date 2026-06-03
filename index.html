@@ -981,23 +981,33 @@ function nearestVault(pin){
 
 // ================================================================
 // ISIN MASTER — Official NSE Form 45 ISINs
-// phase1Disabled: 1mg, 10mg, 1kg disabled by default
+// 3 DENOMINATION TYPES (confirmed with Gouri sir):
+//   deposit:   min 1g  (physical gold in)
+//   creating:  min 1g  (EGR units created)
+//   tradeable: min 100mg (can trade on NSE, SEBI 1/10 of 1g)
+// pickup: Sequel minimum 1g
 // ================================================================
 const ISIN_MASTER=[
-  {id:"G1g995",  label:"Gold 1g 995",        isin:"ING995NS0032", grams:1,     purity:995, phase1:true},
-  {id:"G1g999",  label:"Gold 1g 999",         isin:"ING999NS0038", grams:1,     purity:999, phase1:true},
-  {id:"G10g995", label:"Gold 10g 995",        isin:"ING995NS0024", grams:10,    purity:995, phase1:true},
-  {id:"G10g999", label:"Gold 10g 999",        isin:"ING999NS0020", grams:10,    purity:999, phase1:true},
-  {id:"G100g995",label:"Gold 100g 995",       isin:"ING995NS0016", grams:100,   purity:995, phase1:true},
-  {id:"G100g999",label:"Gold 100g 999",       isin:"ING999NS0012", grams:100,   purity:999, phase1:true},
-  {id:"G100mg995",label:"Gold 100mg 995",     isin:"ING995NS0040", grams:0.1,   purity:995, phase1:true},
-  {id:"G100mg999",label:"Gold 100mg 999",     isin:"ING999NS0046", grams:0.1,   purity:999, phase1:true},
-  {id:"G1kg995", label:"Gold 1kg 995",        isin:"ING995NS0057", grams:1000,  purity:995, phase1:false},
-  {id:"G1kg999", label:"Gold 1kg 999",        isin:"ING999NS0053", grams:1000,  purity:999, phase1:false},
-  {id:"G10mg995",label:"Gold 10mg 995",       isin:"ING995NS0065", grams:0.01,  purity:995, phase1:false},
-  {id:"G10mg999",label:"Gold 10mg 999",       isin:"ING999NS0061", grams:0.01,  purity:999, phase1:false},
-  {id:"G1mg995", label:"Gold 1mg 995",        isin:"ING995NS0073", grams:0.001, purity:995, phase1:false},
-  {id:"G1mg999", label:"Gold 1mg 999",        isin:"ING999NS0079", grams:0.001, purity:999, phase1:false},
+  // ── 100mg: tradeable only (min trading unit per SEBI 1/10 of 1g)
+  {id:"G100mg995",label:"Gold 100mg 995",isin:"ING995NS0040",grams:0.1,  purity:995,phase1:true, deposit:false,creating:false,tradeable:true, pickup:false},
+  {id:"G100mg999",label:"Gold 100mg 999",isin:"ING999NS0046",grams:0.1,  purity:999,phase1:true, deposit:false,creating:false,tradeable:true, pickup:false},
+  // ── 1g: deposit + EGR creation + tradeable (min deposit & creation)
+  {id:"G1g995",  label:"Gold 1g 995",   isin:"ING995NS0032",grams:1,    purity:995,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  {id:"G1g999",  label:"Gold 1g 999",   isin:"ING999NS0038",grams:1,    purity:999,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  // ── 10g: all three
+  {id:"G10g995", label:"Gold 10g 995",  isin:"ING995NS0024",grams:10,   purity:995,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  {id:"G10g999", label:"Gold 10g 999",  isin:"ING999NS0020",grams:10,   purity:999,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  // ── 100g: all three
+  {id:"G100g995",label:"Gold 100g 995", isin:"ING995NS0016",grams:100,  purity:995,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  {id:"G100g999",label:"Gold 100g 999", isin:"ING999NS0012",grams:100,  purity:999,phase1:true, deposit:true, creating:true, tradeable:true, pickup:true},
+  // ── 1kg: deposit + EGR creation (large bars, Sequel pickup min 1g still applies)
+  {id:"G1kg995", label:"Gold 1kg 995",  isin:"ING995NS0057",grams:1000, purity:995,phase1:false,deposit:true, creating:true, tradeable:false,pickup:true},
+  {id:"G1kg999", label:"Gold 1kg 999",  isin:"ING999NS0053",grams:1000, purity:999,phase1:false,deposit:true, creating:true, tradeable:false,pickup:true},
+  // ── sub-100mg: disabled by default (not in current SEBI scope)
+  {id:"G10mg995",label:"Gold 10mg 995", isin:"ING995NS0065",grams:0.01, purity:995,phase1:false,deposit:false,creating:false,tradeable:false,pickup:false},
+  {id:"G10mg999",label:"Gold 10mg 999", isin:"ING999NS0061",grams:0.01, purity:999,phase1:false,deposit:false,creating:false,tradeable:false,pickup:false},
+  {id:"G1mg995", label:"Gold 1mg 995",  isin:"ING995NS0073",grams:0.001,purity:995,phase1:false,deposit:false,creating:false,tradeable:false,pickup:false},
+  {id:"G1mg999", label:"Gold 1mg 999",  isin:"ING999NS0079",grams:0.001,purity:999,phase1:false,deposit:false,creating:false,tradeable:false,pickup:false},
 ];
 // Admin ISIN state (persisted in localStorage)
 function loadISINState(){
@@ -1005,18 +1015,23 @@ function loadISINState(){
     const saved=JSON.parse(localStorage.getItem("egr_isin_state")||"{}");
     return ISIN_MASTER.map(m=>({
       ...m,
-      enabled: saved[m.id]?.enabled ?? m.phase1,
-      pickup:  saved[m.id]?.pickup  ?? m.phase1,
-      delivery:saved[m.id]?.delivery?? m.phase1,
-      tradeable:saved[m.id]?.tradeable?? m.phase1,
-      creating:saved[m.id]?.creating ?? m.phase1,
-      extinguish:saved[m.id]?.extinguish?? m.phase1,
+      enabled:   saved[m.id]?.enabled    ?? m.phase1,
+      // 3 denomination types (Gouri sir confirmed):
+      deposit:   saved[m.id]?.deposit    ?? m.deposit,   // min 1g
+      creating:  saved[m.id]?.creating   ?? m.creating,  // EGR creation min 1g
+      tradeable: saved[m.id]?.tradeable  ?? m.tradeable,  // trading min 100mg
+      // operational
+      pickup:    saved[m.id]?.pickup     ?? m.pickup,     // Sequel min 1g
+      delivery:  saved[m.id]?.delivery   ?? m.phase1,
+      extinguish:saved[m.id]?.extinguish ?? m.phase1,
     }));
-  }catch(e){return ISIN_MASTER.map(m=>({...m,enabled:m.phase1,pickup:m.phase1,delivery:m.phase1,tradeable:m.phase1,creating:m.phase1,extinguish:m.phase1}));}
+  }catch(e){
+    return ISIN_MASTER.map(m=>({...m,enabled:m.phase1,deposit:m.deposit,creating:m.creating,tradeable:m.tradeable,pickup:m.pickup,delivery:m.phase1,extinguish:m.phase1}));
+  }
 }
 function saveISINState(state){
   const obj={};
-  state.forEach(s=>{obj[s.id]={enabled:s.enabled,pickup:s.pickup,delivery:s.delivery,tradeable:s.tradeable,creating:s.creating,extinguish:s.extinguish};});
+  state.forEach(s=>{obj[s.id]={enabled:s.enabled,deposit:s.deposit,creating:s.creating,tradeable:s.tradeable,pickup:s.pickup,delivery:s.delivery,extinguish:s.extinguish};});
   localStorage.setItem("egr_isin_state",JSON.stringify(obj));
 }
 function enabledISINs(){return loadISINState().filter(s=>s.enabled);}
@@ -3691,13 +3706,24 @@ function AdminDisclaimers(){
 function AdminISINs(){
   const[isins,setIsins]=useState(loadISINState);
   const[saved,setSaved]=useState(false);
-  const FLAGS=["pickup","delivery","tradeable","creating","extinguish"];
+
+  // 3 denomination types + 3 operational flags
+  const DENOM_FLAGS=[
+    {key:"deposit",  label:"Deposit",   color:"#1E40AF", tip:"Physical gold in — min 1g (Gouri sir confirmed)"},
+    {key:"creating", label:"EGR Create",color:"#065F46", tip:"EGR creation — min 1g"},
+    {key:"tradeable",label:"Trading",   color:"#7C3AED", tip:"Trade on NSE — min 100mg (SEBI 1/10 of 1g)"},
+  ];
+  const OPS_FLAGS=[
+    {key:"pickup",   label:"Pickup",    color:"#B45309", tip:"Sequel pickup — min 1g"},
+    {key:"delivery", label:"Delivery",  color:"#0369A1", tip:"Physical delivery"},
+    {key:"extinguish",label:"Extinguish",color:"#991B1B",tip:"Extinguish EGR"},
+  ];
+
   const toggle=(id,key)=>{
     setIsins(prev=>prev.map(s=>{
       if(s.id!==id)return s;
       if(key==="enabled"){
-        const newEnabled=!s.enabled;
-        if(!newEnabled)return {...s,enabled:false,pickup:false,delivery:false,tradeable:false,creating:false,extinguish:false};
+        if(s.enabled)return {...s,enabled:false,deposit:false,creating:false,tradeable:false,pickup:false,delivery:false,extinguish:false};
         return {...s,enabled:true};
       }
       return {...s,[key]:!s[key]};
@@ -3705,32 +3731,76 @@ function AdminISINs(){
     setSaved(false);
   };
   const save=()=>{saveISINState(isins);setSaved(true);setTimeout(()=>setSaved(false),2000);};
+
+  // Group by gram weight
+  const byGram={};
+  isins.forEach(s=>{const k=s.grams+"g";if(!byGram[k])byGram[k]=[];byGram[k].push(s);});
+
+  const FlagChip=({flag,s})=>React.createElement("button",{
+    key:flag.key,
+    onClick:()=>toggle(s.id,flag.key),
+    title:flag.tip,
+    style:{
+      padding:"3px 8px",borderRadius:5,border:`1px solid ${s[flag.key]?flag.color:"var(--border2)"}`,
+      background:s[flag.key]?flag.color+"18":"#fff",color:s[flag.key]?flag.color:"var(--ink3)",
+      fontSize:9,fontWeight:700,cursor:"pointer",fontFamily:"var(--font)"
+    }
+  },s[flag.key]?"✓ ":"",(flag.label));
+
   return React.createElement(React.Fragment,null,
     React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
       React.createElement(Sec,null,"ISIN Master — "+isins.filter(s=>s.enabled).length+"/"+isins.length+" active"),
       React.createElement(Btn,{kind:saved?"teal":"cobalt",sm:true,onClick:save},saved?"✓ Saved":"Save Changes")
     ),
-    React.createElement("div",{className:"info-box amber",style:{marginBottom:10}},"Phase 1: 1mg, 10mg, 1kg are disabled. Enable below to activate for all roles. Flags control per-ISIN capabilities."),
-    isins.map(s=>
-      React.createElement("div",{key:s.id,style:{marginBottom:8,border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",background:s.enabled?"#fff":"var(--paper2)",opacity:s.enabled?1:.75}},
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.enabled?8:0}},
-          React.createElement("div",null,
-            React.createElement("div",{style:{fontSize:12,fontWeight:700}},s.label),
-            React.createElement("div",{style:{fontSize:9,fontFamily:"monospace",color:"var(--ink3)"}},s.isin)
-          ),
-          React.createElement("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}},
-            React.createElement("span",{style:{fontSize:10,color:s.enabled?"var(--greenD)":"var(--ink3)",fontWeight:600}},s.enabled?"ENABLED":"DISABLED"),
-            React.createElement("div",{
-              onClick:()=>toggle(s.id,"enabled"),
-              style:{width:36,height:20,borderRadius:10,background:s.enabled?"var(--green)":"#ccc",position:"relative",cursor:"pointer",transition:"background .2s"}
-            },React.createElement("div",{style:{position:"absolute",top:3,left:s.enabled?18:3,width:14,height:14,borderRadius:7,background:"#fff",transition:"left .2s"}}))
-          )
-        ),
-        s.enabled&&React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
-          FLAGS.map(flag=>
-            React.createElement("label",{key:flag,style:{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:6,border:"1px solid "+(s[flag]?"var(--cobalt)":"var(--border2)"),background:s[flag]?"var(--cobaltL)":"#fff",cursor:"pointer",fontSize:10,fontWeight:500}},
-              React.createElement("input",{type:"checkbox",checked:s[flag],onChange:()=>toggle(s.id,flag),style:{display:"none"}}),
-              s[flag]?"✓ ":"",flag.charAt(0).toUpperCase()+flag.slice(1)
+    // Confirmed minimums banner
+    React.createElement(Card,{style:{background:"#fffbeb",border:"1px solid var(--amber)",marginBottom:10}},
+      React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--amber)",marginBottom:5}},"📋 Confirmed with Gouri sir (current, may change via SEBI Rules tab):"),
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:9,color:"var(--ink2)"}},
+        ["🟦 Deposit: min 1g","🟩 EGR Creation: min 1g","🟣 Trading: min 100mg","🟤 Sequel Pickup: min 1g"].map(t=>
+          React.createElement("div",{key:t},t)
+        )
+      )
+    ),
+    // Legend
+    React.createElement(Card,{style:{marginBottom:10,padding:"8px 12px"}},
+      React.createElement("div",{style:{fontSize:9,fontWeight:700,color:"var(--ink3)",marginBottom:6}},"DENOMINATION FLAGS:"),
+      React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}},
+        DENOM_FLAGS.map(f=>React.createElement("span",{key:f.key,style:{fontSize:8,padding:"2px 7px",borderRadius:4,background:f.color+"18",color:f.color,fontWeight:700,border:`1px solid ${f.color}`}},f.label+" ("+f.tip.split("—")[1]?.trim()+")"))
+      ),
+      React.createElement("div",{style:{fontSize:9,fontWeight:700,color:"var(--ink3)",marginBottom:5}},"OPERATIONAL FLAGS:"),
+      React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5}},
+        OPS_FLAGS.map(f=>React.createElement("span",{key:f.key,style:{fontSize:8,padding:"2px 7px",borderRadius:4,background:"var(--paper2)",color:"var(--ink2)",fontWeight:600,border:"1px solid var(--border2)"}},f.label))
+      )
+    ),
+    // ISINs grouped by gram weight
+    Object.entries(byGram).sort((a,b)=>parseFloat(a[0])-parseFloat(b[0])).map(([grp,list])=>
+      React.createElement("div",{key:grp,style:{marginBottom:12}},
+        React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--ink3)",marginBottom:6,paddingLeft:4}},"── "+grp),
+        list.map(s=>
+          React.createElement("div",{key:s.id,style:{marginBottom:6,border:`1px solid ${s.enabled?"var(--border)":"var(--border2)"}`,borderRadius:10,padding:"10px 12px",background:s.enabled?"#fff":"var(--paper2)",opacity:s.enabled?1:.7}},
+            // Header row
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.enabled?8:0}},
+              React.createElement("div",null,
+                React.createElement("div",{style:{fontSize:11,fontWeight:700}},s.label),
+                React.createElement("div",{style:{fontSize:8,fontFamily:"monospace",color:"var(--ink3)",marginTop:1}},s.isin," · ",s.grams,"g · ",s.purity," purity")
+              ),
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                React.createElement("span",{style:{fontSize:9,color:s.enabled?"var(--greenD)":"var(--ink3)",fontWeight:600}},s.enabled?"ON":"OFF"),
+                React.createElement("div",{onClick:()=>toggle(s.id,"enabled"),style:{width:36,height:20,borderRadius:10,background:s.enabled?"var(--green)":"#ccc",position:"relative",cursor:"pointer",flexShrink:0}},
+                  React.createElement("div",{style:{position:"absolute",top:3,left:s.enabled?18:3,width:14,height:14,borderRadius:7,background:"#fff",transition:"left .15s"}})
+                )
+              )
+            ),
+            // Flags
+            s.enabled&&React.createElement("div",null,
+              React.createElement("div",{style:{fontSize:8,fontWeight:700,color:"var(--ink3)",marginBottom:4}},"DENOMINATION TYPE:"),
+              React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:7}},
+                DENOM_FLAGS.map(f=>React.createElement(FlagChip,{key:f.key,flag:f,s}))
+              ),
+              React.createElement("div",{style:{fontSize:8,fontWeight:700,color:"var(--ink3)",marginBottom:4}},"OPERATIONAL:"),
+              React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap"}},
+                OPS_FLAGS.map(f=>React.createElement(FlagChip,{key:f.key,flag:f,s}))
+              )
             )
           )
         )
@@ -4201,128 +4271,183 @@ function AdminSEBIRules(){
 // e.g. 100g deposit → can be split into 10×10g OR 100×1g
 // ================================================================
 function AdminDenomMatrix(){
-  const DEPOSIT_UNITS=[
-    {label:"1 milligram",g:0.001},
-    {label:"10 milligrams",g:0.01},
-    {label:"100 milligrams",g:0.1},
-    {label:"1 gram",g:1},
-    {label:"10 grams",g:10},
-    {label:"100 grams",g:100},
-    {label:"1 kg",g:1000},
+  // 3 denomination tiers (Gouri sir confirmed — current, may change via SEBI)
+  const ALL_UNITS=[
+    {label:"100mg",   g:0.1,   canDeposit:false, canCreate:false, canTrade:true},  // min trade
+    {label:"1g",      g:1,     canDeposit:true,  canCreate:true,  canTrade:true},  // min deposit/create
+    {label:"10g",     g:10,    canDeposit:true,  canCreate:true,  canTrade:true},
+    {label:"100g",    g:100,   canDeposit:true,  canCreate:true,  canTrade:true},
+    {label:"1kg",     g:1000,  canDeposit:true,  canCreate:true,  canTrade:false},
   ];
-  const TRADING_UNITS=[
-    {label:"1 milligram",g:0.001},
-    {label:"10 milligrams",g:0.01},
-    {label:"100 milligrams",g:0.1},
-    {label:"1 gram",g:1},
-    {label:"10 grams",g:10},
-    {label:"100 grams",g:100},
+
+  const TIERS=[
+    {key:"deposit",  label:"1. Deposit",      color:"#1E40AF", min:"1g",   minG:1,    desc:"Physical gold brought in (min 1g, Sequel pickup min 1g)"},
+    {key:"creating", label:"2. EGR Creation", color:"#065F46", min:"1g",   minG:1,    desc:"ISINs created in demat (min 1g per SEBI/NSE)"},
+    {key:"trading",  label:"3. Trading",      color:"#7C3AED", min:"100mg",minG:0.1,  desc:"Units tradeable on NSE (min 100mg = SEBI 1/10 of 1g)"},
   ];
-  const defaultMatrix=()=>{
-    const m={};
-    DEPOSIT_UNITS.forEach(d=>{
-      m[d.label]=[];
-      TRADING_UNITS.forEach(t=>{
-        // SEBI 1/10 rule: trading unit ≤ deposit unit / 10
-        if(t.g<=d.g/10) m[d.label].push(t.label);
-      });
-    });
-    return m;
-  };
+
+  // Matrix: per deposit unit → allowed EGR creation units → allowed trading units
+  const defaultMatrix=()=>({
+    deposit:  ALL_UNITS.filter(u=>u.canDeposit).map(u=>u.label),
+    creating: ALL_UNITS.filter(u=>u.canCreate).map(u=>u.label),
+    trading:  ALL_UNITS.filter(u=>u.canTrade).map(u=>u.label),
+  });
+
   const [matrix,setMatrix]=useState(()=>{
-    const s=localStorage.getItem("DENOM_MATRIX");
+    const s=localStorage.getItem("DENOM_MATRIX3");
     return s?JSON.parse(s):defaultMatrix();
   });
-  const [selected,setSelected]=useState("10 grams");
-  const toggle=(depositLabel,tradingLabel)=>{
+  const [selDeposit,setSelDeposit]=useState("1g");
+  const [selCreate,setSelCreate]=useState("1g");
+
+  const toggleUnit=(tier,label)=>{
     setMatrix(m=>{
-      const cur=m[depositLabel]||[];
-      const next=cur.includes(tradingLabel)?cur.filter(x=>x!==tradingLabel):[...cur,tradingLabel];
-      return {...m,[depositLabel]:next};
+      const cur=m[tier]||[];
+      const unit=ALL_UNITS.find(u=>u.label===label);
+      // enforce minimum
+      if(tier==="deposit"&&unit&&unit.g<1) return m; // can't go below 1g deposit
+      if(tier==="creating"&&unit&&unit.g<1) return m; // can't go below 1g create
+      if(tier==="trading"&&unit&&unit.g<0.1) return m; // can't go below 100mg trade
+      const next=cur.includes(label)?cur.filter(x=>x!==label):[...cur,label];
+      return {...m,[tier]:next};
     });
   };
-  const save=()=>{localStorage.setItem("DENOM_MATRIX",JSON.stringify(matrix));alert("✅ Denomination matrix saved!");};
-  const reset=()=>{const d=defaultMatrix();setMatrix(d);localStorage.setItem("DENOM_MATRIX",JSON.stringify(d));};
+  const save=()=>{localStorage.setItem("DENOM_MATRIX3",JSON.stringify(matrix));alert("✅ Denomination matrix saved!");};
+  const reset=()=>{const d=defaultMatrix();setMatrix(d);localStorage.setItem("DENOM_MATRIX3",JSON.stringify(d));};
 
-  const dep=DEPOSIT_UNITS.find(d=>d.label===selected);
-  const allowedTrading=matrix[selected]||[];
+  const depUnit=ALL_UNITS.find(u=>u.label===selDeposit);
+  const createUnit=ALL_UNITS.find(u=>u.label===selCreate);
+
+  // Trading units = those ≤ depositG/10 per SEBI rule
+  const sebiTradeMax=depUnit?(depUnit.g/10):0;
+  const allowedTrade=matrix.trading||[];
 
   return React.createElement(React.Fragment,null,
-    React.createElement(Sec,null,"📐 Denomination Matrix"),
-    React.createElement(InfoBox,null,
-      "SEBI 1/10 rule: trading unit = 1/10th of deposit unit. Admin can allow additional denominations. Depositor chooses how to split (e.g. 11g → 10g×1 + 1g×1)."
-    ),
+    React.createElement(Sec,null,"📐 3-Tier Denomination Matrix"),
 
-    React.createElement(Sec,{style:{marginTop:10}},"Select Deposit Unit"),
-    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
-      DEPOSIT_UNITS.map(d=>React.createElement("button",{key:d.label,onClick:()=>setSelected(d.label),style:{padding:"6px 10px",borderRadius:8,border:`2px solid ${selected===d.label?"var(--cobalt)":"var(--border2)"}`,background:selected===d.label?"var(--cobaltL)":"#fff",color:selected===d.label?"var(--cobalt)":"var(--ink2)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},d.label))
-    ),
-
-    React.createElement(Card,{style:{background:"var(--cobaltL)",marginBottom:8}},
-      React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"var(--cobalt)"}},
-        `Deposit: ${selected} (${dep?.g}g)`
-      ),
-      React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},
-        `SEBI default: trading ≤ ${dep?(dep.g/10):0}g | ${allowedTrading.length} denominations enabled`
-      )
-    ),
-
-    React.createElement(Sec,null,"Allowed Trading Denominations"),
-    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}},
-      TRADING_UNITS.map(t=>{
-        const isAllowed=allowedTrading.includes(t.label);
-        const isSebiDefault=t.g<=(dep?.g||0)/10;
-        const maxUnits=dep?Math.floor(dep.g/t.g):0;
-        return React.createElement("div",{key:t.label,style:{padding:"8px 10px",borderRadius:8,border:`2px solid ${isAllowed?"var(--cobalt)":"var(--border2)"}`,background:isAllowed?"var(--cobaltL)":"#fff",cursor:"pointer"},onClick:()=>toggle(selected,t.label)},
-          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
-            React.createElement("div",null,
-              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:isAllowed?"var(--cobalt)":"var(--ink2)"}},t.label),
-              React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},`${t.g}g · max ${maxUnits} units`)
-            ),
-            React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}},
-              isSebiDefault&&React.createElement("span",{style:{fontSize:7,background:"#e8f5e9",color:"var(--greenD)",padding:"1px 4px",borderRadius:3,fontWeight:700}},"SEBI 1/10"),
-              React.createElement("span",{style:{fontSize:16}},isAllowed?"☑":"☐")
+    // Confirmed minimums card
+    React.createElement(Card,{style:{background:"#fffbeb",border:"1px solid var(--amber)",marginBottom:10}},
+      React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--amber)",marginBottom:8}},"✅ Confirmed with Gouri sir — Current minimums (may change via SEBI Rules):"),
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr",gap:5}},
+        [
+          ["1. DEPOSIT",  "#1E40AF","min 1g","Physical gold in — Sequel pickup also min 1g"],
+          ["2. EGR CREATE","#065F46","min 1g","ISINs created in demat account"],
+          ["3. TRADING",  "#7C3AED","min 100mg","Tradeable on NSE (SEBI 1/10 of 1g)"],
+        ].map(([tier,col,minVal,desc])=>
+          React.createElement("div",{key:tier,style:{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",borderRadius:6,background:col+"10",border:`1px solid ${col}30`}},
+            React.createElement("div",{style:{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0}}),
+            React.createElement("div",{style:{flex:1}},
+              React.createElement("span",{style:{fontSize:10,fontWeight:700,color:col}},tier,": "),
+              React.createElement("span",{style:{fontSize:10,fontWeight:700}},minVal," minimum"),
+              React.createElement("div",{style:{fontSize:8,color:"var(--ink3)"}},desc)
             )
           )
-        );
-      })
-    ),
-
-    React.createElement(Card,{style:{background:"#fff8e1",marginBottom:10}},
-      React.createElement("div",{style:{fontSize:10,fontWeight:700,marginBottom:6}},`Example: Deposit ${selected}`),
-      React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",lineHeight:1.6}},
-        allowedTrading.length>0
-          ? allowedTrading.map(t=>{
-              const tg=TRADING_UNITS.find(x=>x.label===t)?.g||0;
-              const n=dep?Math.floor(dep.g/tg):0;
-              return `${n}×${t} = ${dep?.g}g`;
-            }).join("\nOR\n")
-          : "No trading denominations enabled"
-      )
-    ),
-
-    React.createElement(Sec,null,"All Deposit Units Summary"),
-    React.createElement(Card,null,
-      React.createElement("table",{className:"doc-table",style:{fontSize:9}},
-        React.createElement("thead",null,
-          React.createElement("tr",null,
-            React.createElement("th",null,"Deposit"),
-            React.createElement("th",null,"Allowed Trading Units")
-          )
-        ),
-        React.createElement("tbody",null,
-          DEPOSIT_UNITS.map(d=>React.createElement("tr",{key:d.label,style:{background:selected===d.label?"var(--cobaltL)":"#fff"}},
-            React.createElement("td",{style:{fontWeight:700}},d.label),
-            React.createElement("td",null,(matrix[d.label]||[]).join(", ")||React.createElement("span",{style:{color:"var(--red)"}}, "None enabled"))
-          ))
         )
       )
     ),
 
-    React.createElement(Card,{style:{marginTop:8}},
+    // Tier 1: Deposit units
+    React.createElement(Sec,{style:{marginTop:12}},"Tier 1 — Deposit Denominations"),
+    React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginBottom:6}},"Which physical gold quantities are accepted for deposit?"),
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}},
+      ALL_UNITS.map(u=>{
+        const isOn=matrix.deposit?.includes(u.label);
+        const locked=u.g<1; // below min = always off
+        return React.createElement("div",{key:u.label,onClick:()=>!locked&&toggleUnit("deposit",u.label),style:{
+          padding:"8px 12px",borderRadius:8,border:`2px solid ${isOn?"#1E40AF":locked?"#f0f0f0":"var(--border2)"}`,
+          background:isOn?"#EFF6FF":locked?"#f9f9f9":"#fff",cursor:locked?"not-allowed":"pointer",
+          opacity:locked?0.4:1
+        }},
+          React.createElement("div",{style:{fontSize:11,fontWeight:700,color:isOn?"#1E40AF":"var(--ink2)"}},u.label),
+          React.createElement("div",{style:{fontSize:8,color:"var(--ink3)"}},u.g,"g",locked?" (below min)":isOn?" ✓":"")
+        );
+      })
+    ),
+
+    // Tier 2: EGR Creation units
+    React.createElement(Sec,{style:{marginTop:12}},"Tier 2 — EGR Creation Denominations"),
+    React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginBottom:6}},"Which ISIN denominations can be created from deposited gold?"),
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}},
+      ALL_UNITS.map(u=>{
+        const isOn=matrix.creating?.includes(u.label);
+        const locked=u.g<1;
+        return React.createElement("div",{key:u.label,onClick:()=>!locked&&toggleUnit("creating",u.label),style:{
+          padding:"8px 12px",borderRadius:8,border:`2px solid ${isOn?"#065F46":locked?"#f0f0f0":"var(--border2)"}`,
+          background:isOn?"#ECFDF5":locked?"#f9f9f9":"#fff",cursor:locked?"not-allowed":"pointer",
+          opacity:locked?0.4:1
+        }},
+          React.createElement("div",{style:{fontSize:11,fontWeight:700,color:isOn?"#065F46":"var(--ink2)"}},u.label),
+          React.createElement("div",{style:{fontSize:8,color:"var(--ink3)"}},u.g,"g",locked?" (below min)":isOn?" ✓":"")
+        );
+      })
+    ),
+
+    // Tier 3: Trading units (SEBI 1/10 rule)
+    React.createElement(Sec,{style:{marginTop:12}},"Tier 3 — Trading Denominations"),
+    React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginBottom:6}},"Which units can be traded on NSE? (SEBI 1/10 rule: min 100mg)"),
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}},
+      ALL_UNITS.map(u=>{
+        const isOn=matrix.trading?.includes(u.label);
+        const locked=u.g<0.1;
+        const isSebi1_10=u.g<=1/10; // 100mg is SEBI 1/10 of 1g
+        return React.createElement("div",{key:u.label,onClick:()=>!locked&&toggleUnit("trading",u.label),style:{
+          padding:"8px 12px",borderRadius:8,border:`2px solid ${isOn?"#7C3AED":locked?"#f0f0f0":"var(--border2)"}`,
+          background:isOn?"#F5F3FF":locked?"#f9f9f9":"#fff",cursor:locked?"not-allowed":"pointer",
+          opacity:locked?0.4:1
+        }},
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            React.createElement("div",{style:{fontSize:11,fontWeight:700,color:isOn?"#7C3AED":"var(--ink2)"}},u.label),
+            isSebi1_10&&React.createElement("span",{style:{fontSize:7,background:"#7C3AED",color:"#fff",padding:"1px 4px",borderRadius:3,fontWeight:700}},"SEBI")
+          ),
+          React.createElement("div",{style:{fontSize:8,color:"var(--ink3)"}},u.g,"g",locked?" (below min)":isOn?" ✓":"")
+        );
+      })
+    ),
+
+    // Split example calculator
+    React.createElement(Sec,{style:{marginTop:12}},"Split Example Calculator"),
+    React.createElement(Card,{style:{background:"#f8f9fa"}},
+      React.createElement("div",{style:{fontSize:10,fontWeight:700,marginBottom:8}},"Deposit → EGR Creation → Trading examples:"),
+      React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}},
+        (matrix.deposit||[]).map(dl=>
+          React.createElement("button",{key:dl,onClick:()=>setSelDeposit(dl),style:{padding:"4px 9px",borderRadius:6,border:`1px solid ${selDeposit===dl?"#1E40AF":"var(--border2)"}`,background:selDeposit===dl?"#EFF6FF":"#fff",color:selDeposit===dl?"#1E40AF":"var(--ink2)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},dl)
+        )
+      ),
+      React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",lineHeight:2}},
+        React.createElement("div",null,
+          React.createElement("span",{style:{fontWeight:700,color:"#1E40AF"}},"Deposit: "),selDeposit," (",ALL_UNITS.find(u=>u.label===selDeposit)?.g,"g)"
+        ),
+        React.createElement("div",null,
+          React.createElement("span",{style:{fontWeight:700,color:"#065F46"}},"EGR Create options: "),
+          (matrix.creating||[]).filter(cl=>{
+            const cu=ALL_UNITS.find(u=>u.label===cl);
+            const du=ALL_UNITS.find(u=>u.label===selDeposit);
+            return cu&&du&&cu.g<=du.g;
+          }).map(cl=>{
+            const cu=ALL_UNITS.find(u=>u.label===cl);
+            const du=ALL_UNITS.find(u=>u.label===selDeposit);
+            return Math.floor((du?.g||0)/(cu?.g||1))+"×"+cl;
+          }).join("  OR  ")||"None"
+        ),
+        React.createElement("div",null,
+          React.createElement("span",{style:{fontWeight:700,color:"#7C3AED"}},"Trading options: "),
+          (matrix.trading||[]).filter(tl=>{
+            const tu=ALL_UNITS.find(u=>u.label===tl);
+            const du=ALL_UNITS.find(u=>u.label===selDeposit);
+            return tu&&du&&tu.g<=(du.g/10);
+          }).map(tl=>{
+            const tu=ALL_UNITS.find(u=>u.label===tl);
+            const du=ALL_UNITS.find(u=>u.label===selDeposit);
+            return Math.floor((du?.g||0)/(tu?.g||1))+"×"+tl;
+          }).join("  OR  ")||"None within SEBI 1/10 rule"
+        )
+      )
+    ),
+
+    React.createElement(Card,{style:{marginTop:10}},
       React.createElement("div",{style:{display:"flex",gap:8}},
         React.createElement(Btn,{kind:"green",onClick:save},"💾 Save Matrix"),
-        React.createElement(Btn,{kind:"orange",onClick:reset},"🔄 Reset to SEBI 1/10 Defaults")
+        React.createElement(Btn,{kind:"orange",onClick:reset},"🔄 Reset to Confirmed Minimums")
       )
     )
   );
