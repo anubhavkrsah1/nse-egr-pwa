@@ -1055,22 +1055,72 @@ function getDisclaimer(key){return loadDisclaimers()[key]||DISCLAIMERS_DEFAULTS[
 // Documents are created as gold flows through supply chain
 // Visible to: Refiner, Vault Manager, NSDL (always), + specific roles
 // ================================================================
+// 6 mandatory documents — exact mapping from the workflow table
 const DOC_MASTER=[
-  {id:"form45", name:"Form 45 (EGR Deposit Request)", generatedAt:"deposit_start", issuedBy:"Depositor", requiredFor:"NSDL registration"},
-  {id:"packingList", name:"Gold Packing List", generatedAt:"refiner_receipt", issuedBy:"Refiner", requiredFor:"Vault acceptance"},
-  {id:"indemnityLetter", name:"Letter of Indemnity", generatedAt:"deposit_start", issuedBy:"Depositor/Refiner", requiredFor:"SEBI audit"},
-  {id:"authLetter", name:"Authorisation Letter", generatedAt:"if_representative", issuedBy:"Depositor", requiredFor:"Rep collection/delivery"},
-  {id:"vaultReceipt", name:"Vault Acceptance Certificate", generatedAt:"vault_confirmation", issuedBy:"Vault Manager", requiredFor:"EGR creation"},
-  {id:"settlementConfirm", name:"Settlement Confirmation", generatedAt:"dp_credit", issuedBy:"DP/NSDL", requiredFor:"Customer notification"},
+  {
+    id:"form45",
+    name:"DR Form 45 (EGR Deposit Request)",
+    requiredBy:"NSDL",       // only NSDL requires it
+    filledBy:["depositor","refiner","nsdl","vault"],  // filled at different stages
+    generatedAt:"deposit_start",
+    stage:"Depositor fills at start; Refiner adds gold details; Vault signs at receipt; NSDL approves",
+    sentTo:["nsdl","dp","vault","refiner"]
+  },
+  {
+    id:"releaseTransfer",
+    name:"Release & Transfer Letter (Vault-to-Vault)",
+    requiredBy:"vault",       // only vault requires it
+    filledBy:["depositor"],
+    generatedAt:"after_refiner",
+    stage:"Depositor fills after gold reaches Refiner — for vault-to-vault transfers only",
+    sentTo:["vault"]
+  },
+  {
+    id:"depositLetter",
+    name:"Deposit Letter",
+    requiredBy:"vault",
+    filledBy:["depositor"],
+    generatedAt:"after_refiner",
+    stage:"Depositor fills after gold reaches Refiner — sent to Vault with gold",
+    sentTo:["vault","refiner"]
+  },
+  {
+    id:"packingList",
+    name:"Packing List & Purity Certificate",
+    requiredBy:"vault",
+    filledBy:["depositor","refiner"],
+    generatedAt:"after_refiner",
+    stage:"Refiner generates after assay; Depositor co-signs",
+    sentTo:["vault","nsdl"]
+  },
+  {
+    id:"indemnityLetter",
+    name:"Letter of Indemnity",
+    requiredBy:"vault",
+    filledBy:["depositor"],
+    generatedAt:"after_refiner",
+    stage:"Depositor fills after gold reaches Refiner",
+    sentTo:["vault","refiner"]
+  },
+  {
+    id:"authLetter",
+    name:"Authorisation Letter",
+    requiredBy:"vault",
+    filledBy:["depositor"],
+    generatedAt:"if_representative",
+    stage:"Depositor fills if gold delivered by authorised representative",
+    sentTo:["vault","collection"]
+  },
 ];
-const DOC_TYPES=["form45","packingList","indemnityLetter","authLetter","vaultReceipt","settlementConfirm"];
+const DOC_TYPES=DOC_MASTER.map(d=>d.id);
 const ROLE_VISIBILITY={
-  // Refiner, Vault, NSDL see ALL docs automatically (no need to grant)
+  // Refiner, Vault, NSDL see ALL docs (as per workflow table)
   refiner:DOC_TYPES,vault:DOC_TYPES,nsdl:DOC_TYPES,
-  // Others see subset (requires depositor grant)
-  collection:["form45","authLetter","packingList"],
+  // Others see only docs relevant to their role
+  depositor:DOC_TYPES, // depositor sees all their own docs
+  collection:["form45","authLetter"],
   assayer:["form45","packingList"],
-  dp:["form45","vaultReceipt","settlementConfirm"],
+  dp:["form45"],
   pickup:["authLetter"],
 };
 function canViewDoc(role,depositId,docType){
@@ -1154,162 +1204,353 @@ function getForm45TC(){
   const disc=loadDisclaimers();
   return [disc.form45_1,disc.form45_2,disc.form45_3,disc.form45_4,disc.form45_5,disc.form45_6,disc.form45_7,disc.form45_8,disc.form45_9,disc.form45_10,disc.form45_11,disc.form45_12,disc.form45_13,disc.form45_14,disc.form45_15];
 }
+// Helper: load accreditation refiners from admin settings
+function loadAccredRefiners(){
+  const s=localStorage.getItem("ACCREDITATION");
+  const acc=s?JSON.parse(s):{refiners:[{id:"parker",name:"Parker Precious Metals LLP",active:true},{id:"augmont",name:"Augmont Enterprise (India) Pvt Ltd",active:true},{id:"ggc",name:"Gujarat Gold Centre Pvt Ltd",active:true}],allowLBMA:true};
+  const list=acc.refiners.filter(r=>r.active);
+  if(acc.allowLBMA) list.push({id:"lbma",name:"LBMA Accredited Refiner"});
+  return list;
+}
+
 function Form45({go}){
   const isins=loadISINState();
-  const FORM45_TC=getForm45TC(); // Load dynamic T&Cs from localStorage
+  const FORM45_TC=getForm45TC();
+  const refiners=loadAccredRefiners();
+  const sebiRules=()=>{const s=localStorage.getItem("SEBI_RULES");return s?JSON.parse(s):{denominationRatio:"1/10"};};
   const[step,setStep]=useState(0);
   const[f,setF]=useState({
     dpId:"IN302324",clientId:"",holderName:"Anoop Kumar",holder2:"",holder3:"",
     purity:"999",barFrom:"",barTo:"",bars:"",weightFig:"",weightWords:"",
-    accred:"parker",vmid:"VM010013",brokerName:"",brokerAcc:"",pan:"",
+    accred:"parker",vmid:"VM010013",brokerName:"Sequel Logistics Pvt Ltd",brokerAcc:"",pan:"",
     aadhar:"",mobile:"",email:"anoop@email.com",date:new Date().toLocaleDateString("en-IN"),
     depositUnit:"",tradingUnit:"",
+    // Assayer fills at assay stage
+    assayDenom:"",assayPurity:"",assayVerifiedBy:"",
+    // Vault fills at vault stage
+    vaultDenom:"",vaultPurity:"",vaultSealNo:"",vaultDate:"",vaultVmid:"",
   });
   const[tcPage,setTcPage]=useState(0);
   const[agreed,setAgreed]=useState(false);
+  const[viewMode,setViewMode]=useState("depositor"); // depositor/assayer/refiner/vault/dp/nsdl
   const u=(k,v)=>setF(p=>({...p,[k]:v}));
-  const fi=(k,ph,w,type)=>React.createElement("input",{className:"doc-input",type:type||"text",value:f[k],onChange:e=>u(k,e.target.value),placeholder:ph,style:{width:w||"120px"}});
+  const fi=(k,ph,w,type,readOnly)=>React.createElement("input",{className:"doc-input",type:type||"text",value:f[k],onChange:e=>!readOnly&&u(k,e.target.value),placeholder:ph,style:{width:w||"120px",background:readOnly?"#f0f0f0":"#fff"},readOnly});
   const enabledForCreating=isins.filter(s=>s.enabled&&s.creating);
-  return React.createElement("div",{style:{display:"flex",flexDirection:"column",height:"100%"}},
-    React.createElement(NavBar,{onBack:()=>go("home"),title:"Form 45 — EGR Deposit Request",right:React.createElement("span",{style:{fontSize:10,color:"var(--ink3)",marginRight:8}},"Step "+(step+1)+"/3")}),
-    React.createElement("div",{className:"doc-badge-row"},
-      React.createElement("span",{className:"doc-role-badge"},"📋 Depositor fills"),
-      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--green)"}},"📄 = Deposit Letter (same doc)"),
-      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--cobalt)"}},"🏛️ DP → eDPAM"),
-      React.createElement("span",{className:"doc-role-badge",style:{background:"var(--orange)"}},"🏦 Vault receives")
+  const DEPOSIT_UNITS=["1 milligram","10 milligrams","1 gram","10 grams","100 grams"];
+  const TRADING_UNITS=["1 milligram","10 milligrams","1 gram","10 grams","100 grams"];
+  // Denomination splitting logic (SEBI 1/10 rule)
+  const DENOM_GRAMS={"1 milligram":0.001,"10 milligrams":0.01,"100 milligrams":0.1,"1 gram":1,"10 grams":10,"100 grams":100,"1 kg":1000};
+  const [denomSplit,setDenomSplit]=useState({}); // {label: qty}
+  const denomMatrix=()=>{const s=localStorage.getItem("DENOM_MATRIX");return s?JSON.parse(s):{};};
+  const totalSplitG=Object.entries(denomSplit).reduce((a,[k,q])=>a+(DENOM_GRAMS[k]||0)*q,0);
+  const depositG=f.depositUnit?DENOM_GRAMS[f.depositUnit]||0:0;
+  const splitOK=f.depositUnit?Math.abs(totalSplitG-depositG)<0.0001:true;
+
+  const ROLE_COLORS={depositor:"var(--cobalt)",dp:"var(--green)",refiner:"var(--orange)",assayer:"#7c3aed",vault:"var(--amber)"};
+  const RoleTag=({role,label})=>React.createElement("span",{style:{fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:3,background:ROLE_COLORS[role]||"#888",color:"#fff",marginLeft:4}},label);
+
+  const inputStyle=(role,readOnly)=>({
+    width:"100%",padding:"5px 7px",borderRadius:5,border:`1px solid ${ROLE_COLORS[role]||"#ccc"}`,
+    marginTop:3,fontFamily:"var(--mono)",fontSize:11,
+    background:readOnly?"#f5f5f5":"#fff",color:"#111",outline:"none"
+  });
+  const LabeledField=({label,role,roleLabel,children})=>React.createElement("div",{style:{marginBottom:7}},
+    React.createElement("div",{style:{fontSize:9,fontWeight:600,color:"var(--ink3)",display:"flex",alignItems:"center"}},
+      label, React.createElement(RoleTag,{role,label:roleLabel||role})
     ),
+    children
+  );
+  const FI=(k,ph,role,readOnly,type)=>React.createElement("input",{
+    type:type||"text",value:f[k],onChange:e=>!readOnly&&u(k,e.target.value),
+    placeholder:ph,style:inputStyle(role,readOnly),readOnly
+  });
+
+  return React.createElement("div",{style:{display:"flex",flexDirection:"column",height:"100%"}},
+    React.createElement(NavBar,{onBack:()=>go("home"),title:"Form 45 — EGR Deposit Request",right:React.createElement("span",{style:{fontSize:10,color:"var(--ink3)",marginRight:8}},"Step "+(step+1)+"/4")}),
+
+    // Role colour legend
+    React.createElement("div",{style:{display:"flex",gap:5,padding:"4px 10px",flexWrap:"wrap",borderBottom:"1px solid var(--border)",background:"#fafafa"}},
+      [["depositor","🧑 Depositor"],["dp","🏛️ DP"],["refiner","🏭 Refiner"],["assayer","🔬 Assayer"],["vault","🏦 Vault Mgr"]].map(([r,l])=>
+        React.createElement("span",{key:r,style:{fontSize:8,padding:"2px 7px",borderRadius:10,background:ROLE_COLORS[r],color:"#fff",fontWeight:700}},l)
+      )
+    ),
+
+    // STEP 0: Depositor + DP fills
     step===0&&React.createElement("div",{className:"doc-wrap"},
       React.createElement("div",{className:"doc-paper"},
-        React.createElement("div",{style:{textAlign:"center",marginBottom:4,fontSize:9,fontWeight:700,letterSpacing:1}},"NATIONAL STOCK EXCHANGE (NSE)"),
-        React.createElement("div",{className:"doc-title"},"ELECTRONIC GOLD RECEIPTS (EGRs)"),
-        React.createElement("div",{className:"doc-sub"},"DEPOSIT REQUEST — FORM 45"),
-        React.createElement("div",{style:{marginBottom:10,fontSize:10}},"Date: ",fi("date","dd/mm/yyyy","100px")),
-        React.createElement("div",{className:"doc-para",style:{fontSize:9.5}},"I/We hereby request creation of NSE Electronic Gold Receipts (EGRs), based on NSE Good Gold Standards deposited with Sequel Logistics Private Limited to be registered in my/our name as per the details below."),
-        React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{className:"doc-section-title"},"Account & Holder Details"),
-          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10}},
-            React.createElement("div",null,"DP ID: ",fi("dpId","DP ID","90px")),
-            React.createElement("div",null,"Client ID: ",fi("clientId","Client ID","90px")),
-            React.createElement("div",null,"Sole/First Holder: ",fi("holderName","Name","110px")),
-            React.createElement("div",null,"Second Holder: ",fi("holder2","Name","110px")),
-            React.createElement("div",null,"Third Holder: ",fi("holder3","Name","110px")),
-            React.createElement("div",null,"PAN: ",fi("pan","PAN No.","90px")),
-            React.createElement("div",null,"Aadhaar: ",fi("aadhar","Aadhaar No.","100px")),
-            React.createElement("div",null,"Mobile: ",fi("mobile","Mobile","100px")),
-            React.createElement("div",null,"Email: ",fi("email","Email","120px")),
-            React.createElement("div",null,"Broker Name: ",fi("brokerName","Broker","110px")),
-            React.createElement("div",null,"Broker A/c No: ",fi("brokerAcc","Account No.","100px"))
+        React.createElement("div",{style:{textAlign:"center",marginBottom:6}},
+          React.createElement("div",{style:{fontSize:8,fontWeight:700,letterSpacing:1,color:"#888"}},"NATIONAL STOCK EXCHANGE (NSE)"),
+          React.createElement("div",{className:"doc-title",style:{fontSize:14}},"ELECTRONIC GOLD RECEIPTS (EGRs)"),
+          React.createElement("div",{className:"doc-sub"},"DEPOSIT REQUEST — FORM 45")
+        ),
+
+        // ── Section A: Depositor fills ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--cobalt)"}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--cobalt)"}},
+            "Section A — Account & KYC",React.createElement(RoleTag,{role:"depositor",label:"DEPOSITOR fills"})
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,fontSize:10}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Date",role:"depositor",roleLabel:"Depositor"},FI("date","dd/mm/yyyy","depositor",false))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"DP ID",role:"depositor",roleLabel:"Depositor"},FI("dpId","IN302324","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Client ID",role:"depositor",roleLabel:"Depositor"},FI("clientId","Client ID","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"PAN No.",role:"depositor",roleLabel:"Depositor"},FI("pan","ABCDE1234F","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Aadhaar No.",role:"depositor",roleLabel:"Depositor"},FI("aadhar","1234-5678-9012","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Mobile",role:"depositor",roleLabel:"Depositor"},FI("mobile","+91 9800000000","depositor")))
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:5,fontSize:10}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Sole / First Holder",role:"depositor",roleLabel:"Depositor"},FI("holderName","Full Name","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Second Holder",role:"depositor",roleLabel:"Depositor"},FI("holder2","(optional)","depositor"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Third Holder",role:"depositor",roleLabel:"Depositor"},FI("holder3","(optional)","depositor")))
           )
         ),
-        React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{className:"doc-section-title"},"Deposit Details"),
-          React.createElement("div",{style:{marginBottom:8,fontSize:10}},
-            React.createElement("div",{style:{marginBottom:4}},"Deposit unit (grams) — tick one:"),
+
+        // ── Section B: Deposit & Trading Units (Depositor selects, default by Sequel) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--cobalt)",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--cobalt)"}},
+            "Section B — Deposit Unit",React.createElement(RoleTag,{role:"depositor",label:"DEPOSITOR selects (default: Sequel)"})
+          ),
+          React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginBottom:6}},
+            "SEBI Rule: ",React.createElement("strong",null,sebiRules().denominationRatio)," — deposit unit to trading unit ratio"
+          ),
+          React.createElement("div",{style:{marginBottom:8}},
+            React.createElement("div",{style:{fontSize:10,fontWeight:600,marginBottom:4}},"Deposit Unit — tick one:"),
             React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-              enabledForCreating.map(s=>React.createElement("label",{key:s.id,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,cursor:"pointer"}},
-                React.createElement("input",{type:"radio",name:"depositUnit",value:s.label,checked:f.depositUnit===s.label,onChange:e=>u("depositUnit",e.target.value)}),
-                s.label.replace("Gold ","")
+              DEPOSIT_UNITS.map(u2=>React.createElement("label",{key:u2,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,cursor:"pointer",padding:"3px 8px",borderRadius:6,border:`1px solid ${f.depositUnit===u2?"var(--cobalt)":"var(--border2)"}`,background:f.depositUnit===u2?"var(--cobaltL)":"#fff"}},
+                React.createElement("input",{type:"radio",name:"depositUnit",value:u2,checked:f.depositUnit===u2,onChange:e=>u("depositUnit",e.target.value),style:{marginRight:3}}),u2
               ))
             )
           ),
-          React.createElement("div",{style:{marginBottom:8,fontSize:10}},
-            React.createElement("div",{style:{marginBottom:4}},"Trading unit (grams) — tick one:"),
-            React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-              enabledForCreating.map(s=>React.createElement("label",{key:s.id,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,cursor:"pointer"}},
-                React.createElement("input",{type:"radio",name:"tradingUnit",value:s.label,checked:f.tradingUnit===s.label,onChange:e=>u("tradingUnit",e.target.value)}),
-                s.label.replace("Gold ","")
-              ))
+
+          // Denomination split calculator (SEBI 1/10 rule)
+          f.depositUnit&&React.createElement("div",{style:{background:"#fff8e1",borderRadius:8,padding:8,marginBottom:8,border:"1px solid var(--amber)"}},
+            React.createElement("div",{style:{fontSize:10,fontWeight:700,marginBottom:5,color:"var(--amber)"}},
+              `🔢 Split ${f.depositUnit} (${(DENOM_GRAMS[f.depositUnit]||0)}g) into trading denominations:`
+            ),
+            React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginBottom:5}},
+              "Choose how many of each denomination — total must equal deposit weight."
+            ),
+            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}},
+              enabledForCreating.filter(s=>s.tradeable).map(s=>{
+                const g=s.grams;
+                const maxQ=Math.floor((DENOM_GRAMS[f.depositUnit]||0)/g);
+                if(maxQ===0)return null;
+                return React.createElement("div",{key:s.id,style:{textAlign:"center",padding:"4px 6px",border:"1px solid var(--border2)",borderRadius:6,background:"#fff"}},
+                  React.createElement("div",{style:{fontSize:9,fontWeight:700,color:"var(--ink2)"}},s.label.replace("Gold ","")),
+                  React.createElement("div",{style:{fontSize:8,color:"var(--ink3)",marginBottom:3}},"×",g,"g · max ",maxQ),
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:4}},
+                    React.createElement("button",{onClick:()=>setDenomSplit(d=>({...d,[s.label]:Math.max(0,(d[s.label]||0)-1)})),style:{width:20,height:20,borderRadius:"50%",border:"1px solid var(--border2)",background:"#fff",cursor:"pointer",fontSize:12,lineHeight:1}},"−"),
+                    React.createElement("span",{style:{fontSize:13,fontWeight:700,minWidth:18,textAlign:"center"}},(denomSplit[s.label]||0)),
+                    React.createElement("button",{onClick:()=>setDenomSplit(d=>({...d,[s.label]:Math.min(maxQ,(d[s.label]||0)+1)})),style:{width:20,height:20,borderRadius:"50%",border:"1px solid var(--border2)",background:"#fff",cursor:"pointer",fontSize:12,lineHeight:1}},"+")
+                  )
+                );
+              })
+            ),
+            React.createElement("div",{style:{marginTop:8,padding:"5px 8px",borderRadius:6,background:splitOK?"#e8f5e9":"#ffebee",fontSize:10,fontWeight:700,color:splitOK?"var(--greenD)":"var(--red)"}},
+              splitOK
+                ? `✅ ${totalSplitG.toFixed(3)}g = ${f.depositUnit} ✓`
+                : `⚠️ Total ${totalSplitG.toFixed(3)}g ≠ ${(DENOM_GRAMS[f.depositUnit]||0)}g — adjust quantities`
             )
           ),
-          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10}},
-            React.createElement("div",null,"Purity: ",
-              React.createElement("select",{className:"doc-input",value:f.purity,onChange:e=>u("purity",e.target.value),style:{width:"70px"}},
-                React.createElement("option",{value:"999"},"999"),
-                React.createElement("option",{value:"995"},"995")
+
+          React.createElement("div",{style:{marginBottom:4}},
+            React.createElement("div",{style:{fontSize:10,fontWeight:600,marginBottom:4}},"Trading Unit — tick one (SEBI 1/10 rule):"),
+            React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
+              TRADING_UNITS.map(u2=>React.createElement("label",{key:u2,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,cursor:"pointer",padding:"3px 8px",borderRadius:6,border:`1px solid ${f.tradingUnit===u2?"var(--cobalt)":"var(--border2)"}`,background:f.tradingUnit===u2?"var(--cobaltL)":"#fff"}},
+                React.createElement("input",{type:"radio",name:"tradingUnit",value:u2,checked:f.tradingUnit===u2,onChange:e=>u("tradingUnit",e.target.value),style:{marginRight:3}}),u2
+              ))
+            )
+          )
+        ),
+
+        // ── Section C: DP fills ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--green)",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--green)"}},
+            "Section C — DP / Broker Details",React.createElement(RoleTag,{role:"dp",label:"DP fills"})
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,fontSize:10}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Broker Name",role:"dp",roleLabel:"DP"},FI("brokerName","Broker Name","dp"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Broker Account No.",role:"dp",roleLabel:"DP"},FI("brokerAcc","Account No.","dp"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"PAN No.",role:"dp",roleLabel:"DP"},FI("pan","","dp",true))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Aadhaar No.",role:"dp",roleLabel:"DP"},FI("aadhar","","dp",true))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Mobile No.",role:"dp",roleLabel:"DP"},FI("mobile","","dp",true))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"VMID",role:"dp",roleLabel:"DP"},FI("vmid","VM010013","dp")))
+          )
+        ),
+
+        // ── Section D: NSE Empanelled Refiners (Accreditation) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--orange)",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--orange)"}},
+            "Section D — Accreditation",React.createElement(RoleTag,{role:"refiner",label:"Depositor selects"})
+          ),
+          React.createElement("div",{style:{fontSize:9,marginBottom:6,color:"var(--ink3)"}},"NSE Empanelled Refiners (configured by Admin → Accreditation):"),
+          React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
+            refiners.map(r=>React.createElement("label",{key:r.id,style:{display:"flex",alignItems:"center",gap:4,fontSize:10,cursor:"pointer",padding:"4px 8px",borderRadius:6,border:`1px solid ${f.accred===r.id?"var(--orange)":"var(--border2)"}`,background:f.accred===r.id?"#fff8f0":"#fff"}},
+              React.createElement("input",{type:"radio",name:"accred",value:r.id,checked:f.accred===r.id,onChange:e=>u("accred",e.target.value)}),
+              r.name, r.id==="lbma"&&React.createElement("span",{style:{fontSize:8,color:"#888",marginLeft:3}},"(tick below)")
+            ))
+          )
+        ),
+
+        // ── Section E: ISIN Table (DP fills tick) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--green)",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--green)"}},
+            "Section E — ISIN Table",React.createElement(RoleTag,{role:"dp",label:"DP ticks ISIN"})
+          ),
+          React.createElement("table",{className:"doc-table",style:{fontSize:9}},
+            React.createElement("thead",null,
+              React.createElement("tr",null,
+                React.createElement("th",null,"Scrip Code"),
+                React.createElement("th",null,"ISIN"),
+                React.createElement("th",null,"Purity"),
+                React.createElement("th",null,"Deposit ✓"),
+                React.createElement("th",null,"Trading ✓")
               )
             ),
-            React.createElement("div",null,"Total Bars: ",fi("bars","count","60px")),
-            React.createElement("div",null,"Bar No. From: ",fi("barFrom","EGR00001","80px")),
-            React.createElement("div",null,"Bar No. To: ",fi("barTo","EGR00005","80px")),
-            React.createElement("div",null,"Weight (figures, grams): ",fi("weightFig","e.g. 50","70px")),
-            React.createElement("div",null,"Weight (words): ",fi("weightWords","Fifty Grams","130px"))
+            React.createElement("tbody",null,
+              isins.filter(s=>s.enabled).map(s=>React.createElement("tr",{key:s.id,style:{background:(f.depositUnit===s.label||f.tradingUnit===s.label)?"#e8f4fd":"#fff"}},
+                React.createElement("td",null,s.label),
+                React.createElement("td",{style:{fontFamily:"monospace",fontSize:8}},s.isin),
+                React.createElement("td",{style:{textAlign:"center"}},s.purity),
+                React.createElement("td",{style:{textAlign:"center"}},(f.depositUnit===s.label)?"☑":"☐"),
+                React.createElement("td",{style:{textAlign:"center"}},(f.tradingUnit===s.label)?"☑":"☐")
+              ))
+            )
+          )
+        )
+      )
+    ),
+
+    // STEP 1: Refiner & Assayer fills
+    step===1&&React.createElement("div",{className:"doc-wrap"},
+      React.createElement("div",{className:"doc-paper"},
+        React.createElement("div",{className:"doc-title",style:{fontSize:13}},"Form 45 — Gold Details"),
+
+        // ── Section F: Refiner fills (bar numbers, purity, weight) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--orange)"}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--orange)"}},
+            "Section F — Gold Details",React.createElement(RoleTag,{role:"refiner",label:"REFINER fills"})
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Purity of Gold",role:"refiner",roleLabel:"Refiner"},
+              React.createElement("select",{value:f.purity,onChange:e=>u("purity",e.target.value),style:inputStyle("refiner")},
+                React.createElement("option",{value:"999"},"999 (99.9%)"),
+                React.createElement("option",{value:"995"},"995 (99.5%)")
+              )
+            )),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Total No. of Bars",role:"refiner",roleLabel:"Refiner"},FI("bars","e.g. 5","refiner"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Bar No. (in figures)",role:"refiner",roleLabel:"Refiner"},FI("barFrom","First bar no.","refiner"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Bar No. (last)",role:"refiner",roleLabel:"Refiner"},FI("barTo","Last bar no.","refiner"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Total Weight (grams — figures)",role:"refiner",roleLabel:"Refiner"},FI("weightFig","e.g. 50.000","refiner"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Total Weight (words)",role:"refiner",roleLabel:"Refiner"},FI("weightWords","e.g. Fifty Grams","refiner")))
           )
         ),
-        React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{className:"doc-section-title"},"Accreditation"),
-          React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:10,fontSize:10}},
-            [["parker","✅ Parker Precious Metals LLP"],["augmont","Augmont Enterprise Ltd"],["gujarat","Gujarat Gold Centre Pvt Ltd"],["lbma","LBMA"]].map(([v,l])=>
-              React.createElement("label",{key:v,style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer"}},
-                React.createElement("input",{type:"radio",name:"accred",value:v,checked:f.accred===v,onChange:e=>u("accred",e.target.value)}),l
+
+        // ── Section G: Assayer fills (Gold Verified) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"#7c3aed",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"#7c3aed"}},
+            "Section G — Gold Verified (by Assayer)",React.createElement(RoleTag,{role:"assayer",label:"ASSAYER fills"})
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Denomination in Grams",role:"assayer",roleLabel:"Assayer"},FI("assayDenom","e.g. 10","assayer"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Purity (Assay result)",role:"assayer",roleLabel:"Assayer"},FI("assayPurity","e.g. 999","assayer"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Verified By (Assayer name)",role:"assayer",roleLabel:"Assayer"},FI("assayVerifiedBy","Name","assayer")))
+          )
+        ),
+
+        // ── Section H: Vault Manager fills (Gold Received) ──
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--amber)",marginTop:8}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--amber)"}},
+            "Section H — Gold Received (by Vault Manager)",React.createElement(RoleTag,{role:"vault",label:"VAULT MGR fills"})
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}},
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Denomination Received (g)",role:"vault",roleLabel:"Vault"},FI("vaultDenom","e.g. 10","vault"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Purity Verified",role:"vault",roleLabel:"Vault"},FI("vaultPurity","e.g. 999","vault"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Vault Seal No.",role:"vault",roleLabel:"Vault"},FI("vaultSealNo","VM-SEAL-001","vault"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Vault VMID",role:"vault",roleLabel:"Vault"},FI("vaultVmid","VM010013","vault"))),
+            React.createElement("div",null,React.createElement(LabeledField,{label:"Received Date",role:"vault",roleLabel:"Vault"},FI("vaultDate","dd/mm/yyyy","vault",false,"date")))
+          ),
+          React.createElement(InfoBox,{tone:"amber",style:{marginTop:8}},"Vault Manager: Gold bars >100g must have Bar Number recorded above (Section F).")
+        )
+      )
+    ),
+
+    // STEP 2: T&C agreement
+    step===2&&React.createElement("div",{className:"doc-wrap"},
+      React.createElement("div",{className:"doc-paper"},
+        React.createElement("div",{className:"doc-title",style:{fontSize:13}},"Terms & Conditions"),
+        React.createElement("div",{style:{background:"#f0f4ff",borderRadius:8,padding:10,marginBottom:10}},
+          React.createElement("div",{style:{fontSize:10,lineHeight:1.7,color:"#333"}},
+            React.createElement("span",{style:{fontWeight:700,fontSize:11}},"§"+(tcPage+1)+". "),FORM45_TC[tcPage]),
+          tcPage<FORM45_TC.length-1&&React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:5}},
+            (FORM45_TC.length-tcPage-1)+" more conditions")
+        ),
+        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:12}},
+          React.createElement(Btn,{kind:"out",sm:true,onClick:()=>tcPage>0&&setTcPage(p=>p-1),style:{opacity:tcPage===0?.3:1}},"← Prev"),
+          React.createElement("span",{style:{fontSize:10,alignSelf:"center",fontWeight:600}},`${tcPage+1} / ${FORM45_TC.length}`),
+          tcPage<FORM45_TC.length-1
+            ? React.createElement(Btn,{kind:"cobalt",sm:true,onClick:()=>setTcPage(p=>p+1)},"Next →")
+            : React.createElement(Btn,{kind:"teal",sm:true,onClick:()=>setAgreed(true)},agreed?"✓ All T&C Agreed":"I Agree to all T&C")
+        ),
+        agreed&&React.createElement("div",{className:"doc-section-box"},
+          React.createElement("div",{className:"doc-section-title"},"Declaration & OTP/Digital Signature"),
+          React.createElement("div",{style:{fontSize:9,marginBottom:8,lineHeight:1.6}},"I/We declare the above-mentioned gold is owned in my/our name, free from any lien. I accept all Terms & Conditions."),
+          React.createElement("table",{className:"doc-table",style:{marginTop:6}},
+            React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,"Holder"),React.createElement("th",null,"Name"),React.createElement("th",null,"Signature (OTP/Digital)"))),
+            React.createElement("tbody",null,
+              [["Sole/First",f.holderName],["Second",f.holder2],["Third",f.holder3]].map(([h,n])=>
+                React.createElement("tr",{key:h},React.createElement("td",null,h),React.createElement("td",null,n||"—"),React.createElement("td",{style:{height:30,color:"var(--ink3)",fontSize:9}},"OTP verified"))
               )
             )
           )
-        ),
-        React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{className:"doc-section-title"},"ISIN Table (filled by DP)"),
-          React.createElement("table",{className:"doc-table"},
-            React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,"Scrip"),React.createElement("th",null,"ISIN"),React.createElement("th",null,"✓"))),
-            React.createElement("tbody",null,
-              isins.filter(s=>s.enabled).map(s=>React.createElement("tr",{key:s.id,style:{background:s.creating?"#fff":"#f8f8f8",opacity:s.creating?1:.6}},
-                React.createElement("td",null,s.label),
-                React.createElement("td",{style:{fontFamily:"monospace",fontSize:9}},s.isin),
-                React.createElement("td",{style:{textAlign:"center"}},(f.depositUnit===s.label||f.tradingUnit===s.label)?"✓":"")
-              ))
-            )
+        )
+      )
+    ),
+
+    // STEP 3: Participant Authorisation + Vault Acknowledgement
+    step===3&&React.createElement("div",{className:"doc-wrap"},
+      React.createElement("div",{className:"doc-paper"},
+        React.createElement("div",{className:"doc-title",style:{fontSize:13}},"Participant Authorisation"),
+        React.createElement("div",{className:"doc-section-box",style:{borderColor:"var(--green)"}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--green)"}},
+            "DP Confirmation",React.createElement(RoleTag,{role:"dp",label:"DP certifies"})
           ),
-          React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:4}},"VMID (filled by DP): ",fi("vmid","VMID","80px"))
-        )
-      )
-    ),
-    step===1&&React.createElement("div",{className:"doc-wrap"},
-      React.createElement("div",{className:"doc-paper"},
-        React.createElement("div",{className:"doc-title"},"Terms & Conditions"),
-        React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{style:{fontSize:10,lineHeight:1.7,color:"#333"}},
-            React.createElement("div",{style:{fontWeight:700,fontSize:11,marginBottom:8}},`${tcPage+1}. ${FORM45_TC[tcPage]}`),
-            tcPage<FORM45_TC.length-1&&React.createElement("div",{style:{fontSize:9,color:"var(--ink3)"}},`${FORM45_TC.length-tcPage-1} more conditions remain`)
+          React.createElement("div",{style:{fontSize:10,lineHeight:1.7,marginBottom:8}},"We have received the abovementioned request to create Electronic Gold Receipt (EGR), subject to deposit of gold to the vault manager. We certify that the application form is complete in all respects."),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10}},
+            React.createElement("div",null,"Name of Executive: ___________________",React.createElement("br",null),"Signature (OTP/Digital): ___________________"),
+            React.createElement("div",{style:{textAlign:"right"}},"Participant's Stamp & Date")
           )
         ),
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",margin:"10px 0"}},
-          React.createElement(Btn,{kind:"out",sm:true,onClick:()=>tcPage>0&&setTcPage(p=>p-1),style:{opacity:tcPage===0?.3:1}},"← Prev"),
-          React.createElement("span",{style:{fontSize:10,alignSelf:"center"}},`${tcPage+1} / ${FORM45_TC.length}`),
-          tcPage<FORM45_TC.length-1
-            ? React.createElement(Btn,{kind:"cobalt",sm:true,onClick:()=>setTcPage(p=>p+1)},"Next →")
-            : React.createElement(Btn,{kind:"teal",sm:true,onClick:()=>setAgreed(true),style:{background:agreed?"var(--green)":"var(--cobalt)"}},agreed?"✓ Agreed":"I Agree to all T&C")
-        ),
-        agreed&&React.createElement("div",{className:"doc-section-box"},
-          React.createElement("div",{className:"doc-section-title"},"Declaration & Signature"),
-          React.createElement("div",{style:{fontSize:10,lineHeight:1.6}},"I/We hereby declare that the above-mentioned gold is owned in my/our name. Gold is free from any lien or encumbrance. I accept all 15 Terms & Conditions above."),
-          React.createElement("table",{className:"doc-table",style:{marginTop:8}},
-            React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,"Holder"),React.createElement("th",null,"Signature"))),
-            React.createElement("tbody",null,
-              ["Sole/First","Second","Third"].map(h=>React.createElement("tr",{key:h},React.createElement("td",null,h),React.createElement("td",{style:{height:36}})))
-            )
-          )
-        )
-      )
-    ),
-    step===2&&React.createElement("div",{className:"doc-wrap"},
-      React.createElement("div",{className:"doc-paper"},
-        React.createElement("div",{className:"doc-title"},"Participant Authorisation"),
-        React.createElement("div",{className:"doc-para",style:{fontSize:10}},"We have received the abovementioned request to create Electronic Gold Receipt (EGR), subject to deposit of gold to the vault manager. We certify that the application form is complete in all respects."),
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",margin:"14px 0",fontSize:10}},
-          React.createElement("div",null,"Name of Executive: ___________________",React.createElement("br",null),"Signature: ___________________"),
-          React.createElement("div",{style:{textAlign:"right"}},"Participant's Stamp & Date")
-        ),
-        React.createElement("div",{className:"doc-section-box",style:{borderStyle:"dashed",marginTop:12}},
-          React.createElement("div",{className:"doc-section-title"},"Acknowledgement (detach & return)"),
-          React.createElement("div",{style:{fontSize:10,lineHeight:1.7}},"We acknowledge receipt of deposit request for "+f.bars+" bar(s) of "+f.weightFig+"g gold ("+f.purity+" purity) from "+f.holderName+" (DP: "+f.dpId+", Client: "+f.clientId+")."),
+        React.createElement("div",{className:"doc-section-box",style:{borderStyle:"dashed",marginTop:10,borderColor:"var(--amber)"}},
+          React.createElement("div",{className:"doc-section-title",style:{color:"var(--amber)"}},
+            "Vault Manager Acknowledgement",React.createElement(RoleTag,{role:"vault",label:"VAULT MGR signs"})
+          ),
+          React.createElement("div",{style:{fontSize:10,lineHeight:1.7}},"We hereby acknowledge the receipt of deposit request for ",
+            React.createElement("strong",null,f.bars||"___")," no. of bar(s) to be deposited in the recognised vault of Vault Manager for creation of EGR by ",
+            React.createElement("strong",null,f.holderName||"___")," having Demat ID: ",React.createElement("strong",null,f.dpId+" / "+f.clientId||"___"),"."
+          ),
           React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginTop:10,fontSize:10}},
-            React.createElement("div",null,"DRN: ___________________",React.createElement("br",null),"Date: "+f.date),
-            React.createElement("div",null,"Participant's Stamp & Signature")
+            React.createElement("div",null,"Seal No.: ",f.vaultSealNo||"___",React.createElement("br",null),"Date: ",f.vaultDate||f.date),
+            React.createElement("div",{style:{textAlign:"right"}},"VAULT MANAGER",React.createElement("br",null),"Stamp & Signature (OTP/Digital)")
+          )
+        ),
+        React.createElement("div",{className:"doc-section-box",style:{marginTop:10,background:"var(--greenL)"}},
+          React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--greenD)"}},
+            "✅ Form 45 Complete — DRN will be generated by DP in eDPAM system"
+          ),
+          React.createElement("div",{style:{fontSize:9,color:"var(--greenD)",marginTop:3}},
+            `Deposit: ${f.depositUnit||"—"} | Trading: ${f.tradingUnit||"—"} | Purity: ${f.purity} | Refiner: ${refiners.find(r=>r.id===f.accred)?.name||"—"}`
           )
         )
       )
     ),
+
     React.createElement("div",{style:{display:"flex",gap:8,padding:"8px 12px",borderTop:"1px solid var(--border)",flexShrink:0,background:"#fff"}},
       step>0&&React.createElement(Btn,{kind:"out",sm:true,onClick:()=>setStep(s=>s-1)},"← Back"),
-      step<2&&React.createElement(Btn,{kind:"cobalt",sm:true,onClick:()=>{if(step===1&&!agreed){alert("Please read and agree to all T&C first.");return;}setStep(s=>s+1);}},step===0?"Next: T&C →":"Next: Submit →"),
+      step<3&&React.createElement(Btn,{kind:"cobalt",sm:true,onClick:()=>{
+        if(step===2&&!agreed){alert("Please read and agree to all T&C first.");return;}
+        if(step===0&&f.depositUnit&&!splitOK){alert("Denomination split doesn't equal deposit weight. Please adjust.");return;}
+        setStep(s=>s+1);
+      }},step===0?"Next: Gold Details →":step===1?"Next: T&C →":step===2?"Next: Authorise →":""),
       React.createElement(Btn,{kind:"cobalt",sm:true,onClick:printDoc},"🖨️ Print"),
       React.createElement(Btn,{kind:"out",sm:true,onClick:()=>downloadDoc("Form45_EGR_Deposit")},"⬇️ Download")
     )
@@ -2592,62 +2833,107 @@ function DepositorDocuments({depositId}){
 // ================================================================
 function MyDocs({go,refreshData}){
   const deposits=[
-    {id:"EGR-001",date:"19-May-2026",gold:"50g",purity:999,status:"active"},
-    {id:"EGR-002",date:"15-May-2026",gold:"100g",purity:995,status:"active"},
+    {id:"EGR-001",date:"19-May-2026",gold:"50g",purity:999,status:"active",depositor:"Anoop Kumar"},
+    {id:"EGR-002",date:"15-May-2026",gold:"100g",purity:995,status:"active",depositor:"Anoop Kumar"},
   ];
   const [selected,setSelected]=useState(null);
-  const [docShare,setDocShare]=useState({});
+  const [tick,setTick]=useState(0); // force re-render after toggle
 
-  const docs=["form45","packingList","indemnityLetter","authLetter"];
-  const shareableRoles=["collection","assayer","refiner","vault","dp","nsdl"];
+  const ROLE_LABELS={
+    collection:"Collection Centre",assayer:"Assayer",refiner:"Refiner",
+    vault:"Vault Manager",dp:"DP/Broker",nsdl:"NSDL"
+  };
+  const ROLE_ICONS={collection:"📦",assayer:"🔬",refiner:"🏭",vault:"🏦",dp:"🏛️",nsdl:"🏅"};
+
+  // For each doc, which roles are always-on (hardcoded) vs optional (depositor can toggle)
+  const alwaysOn=(docId,role)=>["refiner","vault","nsdl"].includes(role);
+  const optionalRoles=["collection","assayer","dp"];
 
   return React.createElement(React.Fragment,null,
     React.createElement(NavBar,{onBack:()=>go("home"),title:"My Documents"}),
     React.createElement(Scroll,null,
-      React.createElement(InfoBox,{tone:"blue"},"Share your EGR documents with roles that need them. Refiner, Vault Manager & NSDL always have access. Grant Collection Centre, Assayer, DP access as needed."),
+      React.createElement(InfoBox,{tone:"blue"},
+        "Refiner, Vault Manager & NSDL always see all 6 documents. Grant optional access to Collection Centre, Assayer, DP."
+      ),
 
       !selected
         ? React.createElement(React.Fragment,null,
-            React.createElement(Sec,null,"My EGRs"),
+            React.createElement(Sec,null,"My EGRs — 6 Documents Each"),
             deposits.map(d=>
-              React.createElement("div",{key:d.id,onClick:()=>setSelected(d.id),style:{padding:"12px 13px",border:"1.5px solid var(--border2)",borderRadius:10,marginBottom:8,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}},
-                React.createElement("div",null,
-                  React.createElement("div",{style:{fontSize:12,fontWeight:700}},d.id),
-                  React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginTop:2}},d.date," · "+d.gold+" ("+d.purity+" purity)")
+              React.createElement("div",{key:d.id,onClick:()=>setSelected(d.id),style:{padding:"12px 13px",border:"1.5px solid var(--border2)",borderRadius:10,marginBottom:8,cursor:"pointer",background:"#fff"}},
+                React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+                  React.createElement("div",{style:{fontSize:12,fontWeight:700}},d.id," · ",d.gold),
+                  React.createElement(Badge,{c:"green"},d.status)
                 ),
-                React.createElement(Badge,{c:"green"},d.status)
+                React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginBottom:6}},d.date," · ",d.purity," purity"),
+                React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:4}},
+                  DOC_MASTER.map(doc=>React.createElement("span",{key:doc.id,style:{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--cobaltL)",color:"var(--cobalt)",fontWeight:600}},doc.id==="form45"?"Form 45":doc.id==="releaseTransfer"?"Release & Transfer":doc.id==="depositLetter"?"Deposit Letter":doc.id==="packingList"?"Packing List":doc.id==="indemnityLetter"?"Indemnity":doc.id==="authLetter"?"Auth Letter":"Doc"))
+                )
               )
             )
           )
         : React.createElement(React.Fragment,null,
-            React.createElement(Card,{style:{marginBottom:12}},
-              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+            React.createElement(Card,{style:{marginBottom:10}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                 React.createElement("div",{style:{fontSize:13,fontWeight:700}},selected),
-                React.createElement(Badge,{c:"blue"},"Managing access")
+                React.createElement(Badge,{c:"blue"},"6 Documents")
               ),
-              React.createElement("div",{style:{fontSize:10,color:"var(--ink3)"}},deposits.find(d=>d.id===selected)?.date+" · "+deposits.find(d=>d.id===selected)?.gold)
+              React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginTop:3}},
+                deposits.find(d=>d.id===selected)?.date+" · "+deposits.find(d=>d.id===selected)?.gold
+              )
             ),
-            React.createElement(Sec,null,"Document access control"),
-            docs.map(doc=>
-              React.createElement("div",{key:doc,style:{marginBottom:14,padding:"10px 12px",border:"1px solid var(--border2)",borderRadius:8,background:"var(--paper2)"}},
-                React.createElement("div",{style:{fontSize:11,fontWeight:700,marginBottom:8,color:"var(--cobalt)"}},
-                  doc===0?"Form 45":doc==="packingList"?"Gold Packing List":doc==="indemnityLetter"?"Letter of Indemnity":"Authorisation Letter"
-                ),
-                React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-                  shareableRoles.map(role=>
-                    React.createElement("label",{key:role,style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",padding:"4px 8px",borderRadius:6,background:"#fff",border:"1px solid var(--border)"}},
-                      React.createElement("input",{type:"checkbox",checked:canViewDoc(role,selected,doc),onChange:e=>{
-                        if(e.target.checked)grantDocAccess(selected,doc,role);
-                        else revokeDocAccess(selected,doc,role);
-                        setDocShare(p=>({...p,[`${selected}:${doc}:${role}`]:e.target.checked}));
-                      },style:{cursor:"pointer",accentColor:"var(--green)"}}),
-                      React.createElement("span",{style:{fontSize:10,fontWeight:500}},role===0?"Collection":role==="assayer"?"Assayer":role==="refiner"?"Refiner":role==="vault"?"Vault":role==="dp"?"DP":"NSDL")
+
+            DOC_MASTER.map((doc,i)=>
+              React.createElement("div",{key:doc.id,style:{marginBottom:10,borderRadius:10,border:"1px solid var(--border2)",overflow:"hidden",background:"#fff"}},
+                // Document header
+                React.createElement("div",{style:{background:doc.requiredBy==="NSDL"?"var(--cobalt)":"var(--green)",padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  React.createElement("div",null,
+                    React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"#fff"}},i+1+". "+doc.name),
+                    React.createElement("div",{style:{fontSize:8,color:"rgba(255,255,255,.8)",marginTop:1}},
+                      "Req by: "+doc.requiredBy.toUpperCase()+" · Filled by: "+doc.filledBy.join(", ")
                     )
+                  ),
+                  React.createElement(Badge,{c:"white",style:{fontSize:8}},doc.generatedAt==="deposit_start"?"At deposit":doc.generatedAt==="after_refiner"?"After refiner":"If rep")
+                ),
+                // Stage note
+                React.createElement("div",{style:{padding:"6px 12px",background:"var(--paper2)",fontSize:9,color:"var(--ink3)",lineHeight:1.5}},
+                  "📋 ",doc.stage
+                ),
+                // Role access
+                React.createElement("div",{style:{padding:"8px 12px"}},
+                  React.createElement("div",{style:{fontSize:9,fontWeight:700,color:"var(--ink3)",marginBottom:6}},
+                    "WHO SEES THIS DOCUMENT:"
+                  ),
+                  React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5}},
+                    Object.keys(ROLE_LABELS).map(role=>{
+                      const always=alwaysOn(doc.id,role);
+                      const hasAccess=always||canViewDoc(role,selected,doc.id);
+                      return React.createElement("div",{key:role,style:{display:"flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:6,border:`1px solid ${hasAccess?(always?"var(--green)":"var(--cobalt)"):"var(--border2)"}`,background:hasAccess?(always?"#e8f5e9":"#e8f0ff"):"#f9f9f9",opacity:always?0.9:1}},
+                        React.createElement("span",{style:{fontSize:11}},ROLE_ICONS[role]),
+                        React.createElement("span",{style:{fontSize:9,fontWeight:600,color:hasAccess?"var(--ink)":"var(--ink3)"}},ROLE_LABELS[role]),
+                        always
+                          ? React.createElement("span",{style:{fontSize:7,background:"var(--green)",color:"#fff",padding:"0 3px",borderRadius:3}}, "AUTO")
+                          : React.createElement("input",{type:"checkbox",checked:hasAccess,onChange:e=>{
+                              if(e.target.checked)grantDocAccess(selected,doc.id,role);
+                              else revokeDocAccess(selected,doc.id,role);
+                              setTick(t=>t+1);
+                            },style:{width:13,height:13,cursor:"pointer",accentColor:"var(--cobalt)"}})
+                      );
+                    })
                   )
                 )
               )
             ),
-            React.createElement(Btn,{kind:"cobalt",onClick:()=>setSelected(null),style:{marginTop:12}},"← Back to my EGRs")
+
+            React.createElement(Card,{style:{background:"var(--cobaltL)",marginTop:6}},
+              React.createElement("div",{style:{fontSize:10,color:"var(--cobalt)",fontWeight:600}},
+                "🔒 Refiner, Vault Manager & NSDL: always auto-access all 6 documents"
+              ),
+              React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:3}},
+                "You can optionally grant Collection Centre, Assayer, and DP access to specific documents above."
+              )
+            ),
+            React.createElement(Btn,{kind:"cobalt",onClick:()=>setSelected(null),style:{marginTop:10}},"← Back to my EGRs")
           )
     )
   );
@@ -3478,7 +3764,7 @@ function Admin({go,db,stats,requests}){
         )
       ),
       React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}},
-        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs","Disclaimers","Rate Cards"].map((t,i)=>
+        ["Roles","Approvals","Users","Mail","Trades","Orders","ISINs","Disclaimers","Rate Cards","Accreditation","SEBI Rules","Denom Matrix"].map((t,i)=>
           React.createElement("button",{key:t,onClick:()=>setTab(i),style:{padding:"5px 11px",borderRadius:20,fontFamily:"var(--font)",fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${tab===i?"var(--cobalt)":"var(--border2)"}`,background:tab===i?"var(--cobalt)":"#fff",color:tab===i?"#fff":"var(--ink2)"}},t)
         )
       ),
@@ -3596,6 +3882,15 @@ function Admin({go,db,stats,requests}){
       ),
       tab===8&&React.createElement(React.Fragment,null,
         React.createElement(AdminRateCards,null)
+      ),
+      tab===9&&React.createElement(React.Fragment,null,
+        React.createElement(AdminAccreditation,null)
+      ),
+      tab===10&&React.createElement(React.Fragment,null,
+        React.createElement(AdminSEBIRules,null)
+      ),
+      tab===11&&React.createElement(React.Fragment,null,
+        React.createElement(AdminDenomMatrix,null)
       )
     )
   );
@@ -3715,6 +4010,319 @@ function AdminRateCards(){
         React.createElement("div",{style:{marginTop:3,fontFamily:"var(--mono)"}},
           new Date().toLocaleString()
         )
+      )
+    )
+  );
+}
+
+// ================================================================
+// ADMIN ACCREDITATION — NSE Empanelled Refiners
+// ================================================================
+function AdminAccreditation(){
+  const DEFAULTS={
+    refiners:[
+      {id:"parker",name:"Parker Precious Metals LLP",type:"NSE",active:true,lbma:false},
+      {id:"augmont",name:"Augmont Enterprise (India) Pvt Ltd",type:"NSE",active:true,lbma:false},
+      {id:"ggc",name:"Gujarat Gold Centre Pvt Ltd",type:"NSE",active:true,lbma:false},
+    ],
+    allowLBMA:true,
+    lbmaRefiners:[
+      {id:"rand",name:"Rand Refinery (South Africa)",active:true},
+      {id:"metalor",name:"Metalor Technologies (Switzerland)",active:true},
+      {id:"heraeus",name:"Heraeus (Germany)",active:false},
+    ]
+  };
+  const [acc,setAcc]=useState(()=>{
+    const s=localStorage.getItem("ACCREDITATION");
+    return s?JSON.parse(s):DEFAULTS;
+  });
+  const [newName,setNewName]=useState("");
+  const [newType,setNewType]=useState("NSE");
+  const save=()=>{localStorage.setItem("ACCREDITATION",JSON.stringify(acc));alert("✅ Accreditation saved!");};
+  const toggleRefiner=(id)=>setAcc(a=>({...a,refiners:a.refiners.map(r=>r.id===id?{...r,active:!r.active}:r)}));
+  const toggleLBMA=(id)=>setAcc(a=>({...a,lbmaRefiners:a.lbmaRefiners.map(r=>r.id===id?{...r,active:!r.active}:r)}));
+  const addRefiner=()=>{
+    if(!newName.trim()){alert("Enter refiner name");return;}
+    const id="custom_"+Date.now();
+    if(newType==="NSE") setAcc(a=>({...a,refiners:[...a.refiners,{id,name:newName,type:"NSE",active:true,lbma:false}]}));
+    else setAcc(a=>({...a,lbmaRefiners:[...a.lbmaRefiners,{id,name:newName,active:true}]}));
+    setNewName("");
+  };
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,"🏅 Refiner Accreditation"),
+    React.createElement(InfoBox,null,"Control which refiners are NSE-empanelled. Only active refiners appear in Form 45 deposit flow."),
+
+    React.createElement(Sec,{style:{marginTop:10}},"NSE Empanelled Refiners"),
+    acc.refiners.map(r=>React.createElement(Card,{key:r.id,style:{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      React.createElement("div",null,
+        React.createElement("div",{style:{fontSize:12,fontWeight:700}},r.name),
+        React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},"Type: NSE Empanelled")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        React.createElement(Badge,{c:r.active?"green":"red"},r.active?"Active":"Disabled"),
+        React.createElement("button",{onClick:()=>toggleRefiner(r.id),style:{padding:"4px 10px",borderRadius:6,border:`1px solid ${r.active?"var(--red)":"var(--green)"}`,background:"#fff",color:r.active?"var(--red)":"var(--green)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},r.active?"Disable":"Enable")
+      )
+    )),
+
+    React.createElement(Sec,{style:{marginTop:12}},"LBMA Refiners"),
+    React.createElement(Card,{style:{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      React.createElement("div",null,
+        React.createElement("div",{style:{fontSize:12,fontWeight:700}},"Allow LBMA Accredited Refiners"),
+        React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},"London Bullion Market Association accredited")
+      ),
+      React.createElement("button",{onClick:()=>setAcc(a=>({...a,allowLBMA:!a.allowLBMA})),style:{padding:"6px 14px",borderRadius:20,border:"none",background:acc.allowLBMA?"var(--green)":"var(--red)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--font)"}},acc.allowLBMA?"YES — Allowed":"NO — Blocked")
+    ),
+    acc.allowLBMA&&acc.lbmaRefiners.map(r=>React.createElement(Card,{key:r.id,style:{marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      React.createElement("div",null,
+        React.createElement("div",{style:{fontSize:11,fontWeight:700}},r.name),
+        React.createElement("div",{style:{fontSize:9,color:"var(--ink3)"}},"LBMA accredited")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        React.createElement(Badge,{c:r.active?"green":"red"},r.active?"Active":"Off"),
+        React.createElement("button",{onClick:()=>toggleLBMA(r.id),style:{padding:"4px 10px",borderRadius:6,border:`1px solid ${r.active?"var(--red)":"var(--green)"}`,background:"#fff",color:r.active?"var(--red)":"var(--green)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},r.active?"Disable":"Enable")
+      )
+    )),
+
+    React.createElement(Sec,{style:{marginTop:12}},"Add New Refiner"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"flex",gap:6,marginBottom:8}},
+        ["NSE","LBMA"].map(t=>React.createElement("button",{key:t,onClick:()=>setNewType(t),style:{flex:1,padding:"7px",borderRadius:8,border:`1px solid ${newType===t?"var(--cobalt)":"var(--border2)"}`,background:newType===t?"var(--cobaltL)":"#fff",color:newType===t?"var(--cobalt)":"var(--ink2)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},t+" Refiner"))
+      ),
+      React.createElement("div",{style:{display:"flex",gap:6}},
+        React.createElement("input",{value:newName,onChange:e=>setNewName(e.target.value),placeholder:"Refiner name...",style:{flex:1,padding:"8px 10px",border:"1px solid var(--border2)",borderRadius:8,fontSize:12,fontFamily:"var(--font)",outline:"none"}}),
+        React.createElement(Btn,{kind:"cobalt",sm:true,onClick:addRefiner},"+ Add")
+      )
+    ),
+
+    React.createElement(Card,{style:{marginTop:8}},
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement(Btn,{kind:"green",onClick:save},"💾 Save Accreditation"),
+      )
+    )
+  );
+}
+
+// ================================================================
+// ADMIN SEBI RULES — Denomination ratio & regulatory settings
+// ================================================================
+function AdminSEBIRules(){
+  const DEFAULTS={
+    denominationRatio:"1/10",
+    customNumerator:1,
+    customDenominator:10,
+    sebiCircularRef:"SEBI/HO/MRD/MRD-POD-2/P/CIR/2021/0603",
+    effectiveDate:"2021-11-28",
+    minDepositGrams:1,
+    maxISINPerDemat:500,
+    marginBlockPercent:100,
+    settlementCycle:"T+1"
+  };
+  const [rules,setRules]=useState(()=>{
+    const s=localStorage.getItem("SEBI_RULES");
+    return s?JSON.parse(s):DEFAULTS;
+  });
+  const upd=(k,v)=>setRules(r=>({...r,[k]:v}));
+  const save=()=>{localStorage.setItem("SEBI_RULES",JSON.stringify(rules));alert("✅ SEBI rules saved!");};
+  const reset=()=>{setRules(DEFAULTS);localStorage.setItem("SEBI_RULES",JSON.stringify(DEFAULTS));};
+  const presets=["1/1000","1/100","1/10","1/1"];
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,"⚖️ SEBI Denomination Rules"),
+    React.createElement(InfoBox,null,"Configure SEBI-mandated denomination ratios. Changes apply to all new EGR creation immediately."),
+
+    React.createElement(Sec,{style:{marginTop:10}},"Deposit : Trading Unit Ratio"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginBottom:8,lineHeight:1.5}},
+        "Current SEBI rule: ",React.createElement("strong",null,rules.denominationRatio),
+        " (1 trading unit = 1/10th of deposit unit)\nCan be changed to 1/1000 or 1/100 by SEBI circular."
+      ),
+      React.createElement("div",{style:{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}},
+        presets.map(p=>React.createElement("button",{key:p,onClick:()=>upd("denominationRatio",p),style:{padding:"7px 14px",borderRadius:20,border:`2px solid ${rules.denominationRatio===p?"var(--cobalt)":"var(--border2)"}`,background:rules.denominationRatio===p?"var(--cobaltL)":"#fff",color:rules.denominationRatio===p?"var(--cobalt)":"var(--ink2)",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--font)"}},p))
+      ),
+      React.createElement("div",{style:{fontSize:10,color:"var(--ink3)",marginBottom:6,fontWeight:600}},"Or enter custom ratio:"),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        React.createElement("input",{type:"number",min:1,value:rules.customNumerator,onChange:e=>upd("customNumerator",parseInt(e.target.value)||1),style:{width:60,padding:8,borderRadius:6,border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:13,textAlign:"center"}}),
+        React.createElement("span",{style:{fontSize:16,fontWeight:700,color:"var(--ink3)"}},"/"),
+        React.createElement("input",{type:"number",min:1,value:rules.customDenominator,onChange:e=>upd("customDenominator",parseInt(e.target.value)||10),style:{width:80,padding:8,borderRadius:6,border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:13,textAlign:"center"}}),
+        React.createElement(Btn,{kind:"cobalt",sm:true,onClick:()=>upd("denominationRatio",`${rules.customNumerator}/${rules.customDenominator}`)},"Apply")
+      )
+    ),
+
+    React.createElement(Sec,{style:{marginTop:10}},"Regulatory Reference"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"SEBI Circular Reference"),
+          React.createElement("input",{value:rules.sebiCircularRef,onChange:e=>upd("sebiCircularRef",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontSize:10,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Effective Date"),
+          React.createElement("input",{type:"date",value:rules.effectiveDate,onChange:e=>upd("effectiveDate",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        )
+      )
+    ),
+
+    React.createElement(Sec,{style:{marginTop:10}},"Operational Limits"),
+    React.createElement(Card,null,
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Min Deposit (grams)"),
+          React.createElement("input",{type:"number",min:1,value:rules.minDepositGrams,onChange:e=>upd("minDepositGrams",parseFloat(e.target.value)||1),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Max ISIN per Demat Account"),
+          React.createElement("input",{type:"number",min:1,value:rules.maxISINPerDemat,onChange:e=>upd("maxISINPerDemat",parseInt(e.target.value)||500),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Margin Block (%)"),
+          React.createElement("input",{type:"number",min:0,max:100,value:rules.marginBlockPercent,onChange:e=>upd("marginBlockPercent",parseFloat(e.target.value)||100),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)"}})
+        ),
+        React.createElement("div",null,
+          React.createElement("label",{style:{fontSize:10,color:"var(--ink3)",fontWeight:600}},"Settlement Cycle"),
+          React.createElement("select",{value:rules.settlementCycle,onChange:e=>upd("settlementCycle",e.target.value),style:{width:"100%",padding:8,borderRadius:6,border:"1px solid var(--border2)",marginTop:4,fontFamily:"var(--mono)",fontSize:12}},
+            ["T+0","T+1","T+2"].map(c=>React.createElement("option",{key:c,value:c},c))
+          )
+        )
+      )
+    ),
+
+    React.createElement(Card,{style:{marginTop:10}},
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement(Btn,{kind:"green",onClick:save},"💾 Save SEBI Rules"),
+        React.createElement(Btn,{kind:"orange",onClick:reset},"🔄 Reset to Defaults")
+      )
+    ),
+    React.createElement(InfoBox,{tone:"amber",style:{marginTop:8}},"⚠️ SEBI rules changes affect ALL deposits immediately. Ensure SEBI circular reference is updated before changing.")
+  );
+}
+
+// ================================================================
+// ADMIN DENOMINATION MATRIX — SEBI 1/10 deposit→trading mapping
+// Admin sets which trading denoms are allowed for each deposit unit
+// e.g. 100g deposit → can be split into 10×10g OR 100×1g
+// ================================================================
+function AdminDenomMatrix(){
+  const DEPOSIT_UNITS=[
+    {label:"1 milligram",g:0.001},
+    {label:"10 milligrams",g:0.01},
+    {label:"100 milligrams",g:0.1},
+    {label:"1 gram",g:1},
+    {label:"10 grams",g:10},
+    {label:"100 grams",g:100},
+    {label:"1 kg",g:1000},
+  ];
+  const TRADING_UNITS=[
+    {label:"1 milligram",g:0.001},
+    {label:"10 milligrams",g:0.01},
+    {label:"100 milligrams",g:0.1},
+    {label:"1 gram",g:1},
+    {label:"10 grams",g:10},
+    {label:"100 grams",g:100},
+  ];
+  const defaultMatrix=()=>{
+    const m={};
+    DEPOSIT_UNITS.forEach(d=>{
+      m[d.label]=[];
+      TRADING_UNITS.forEach(t=>{
+        // SEBI 1/10 rule: trading unit ≤ deposit unit / 10
+        if(t.g<=d.g/10) m[d.label].push(t.label);
+      });
+    });
+    return m;
+  };
+  const [matrix,setMatrix]=useState(()=>{
+    const s=localStorage.getItem("DENOM_MATRIX");
+    return s?JSON.parse(s):defaultMatrix();
+  });
+  const [selected,setSelected]=useState("10 grams");
+  const toggle=(depositLabel,tradingLabel)=>{
+    setMatrix(m=>{
+      const cur=m[depositLabel]||[];
+      const next=cur.includes(tradingLabel)?cur.filter(x=>x!==tradingLabel):[...cur,tradingLabel];
+      return {...m,[depositLabel]:next};
+    });
+  };
+  const save=()=>{localStorage.setItem("DENOM_MATRIX",JSON.stringify(matrix));alert("✅ Denomination matrix saved!");};
+  const reset=()=>{const d=defaultMatrix();setMatrix(d);localStorage.setItem("DENOM_MATRIX",JSON.stringify(d));};
+
+  const dep=DEPOSIT_UNITS.find(d=>d.label===selected);
+  const allowedTrading=matrix[selected]||[];
+
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,"📐 Denomination Matrix"),
+    React.createElement(InfoBox,null,
+      "SEBI 1/10 rule: trading unit = 1/10th of deposit unit. Admin can allow additional denominations. Depositor chooses how to split (e.g. 11g → 10g×1 + 1g×1)."
+    ),
+
+    React.createElement(Sec,{style:{marginTop:10}},"Select Deposit Unit"),
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
+      DEPOSIT_UNITS.map(d=>React.createElement("button",{key:d.label,onClick:()=>setSelected(d.label),style:{padding:"6px 10px",borderRadius:8,border:`2px solid ${selected===d.label?"var(--cobalt)":"var(--border2)"}`,background:selected===d.label?"var(--cobaltL)":"#fff",color:selected===d.label?"var(--cobalt)":"var(--ink2)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},d.label))
+    ),
+
+    React.createElement(Card,{style:{background:"var(--cobaltL)",marginBottom:8}},
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"var(--cobalt)"}},
+        `Deposit: ${selected} (${dep?.g}g)`
+      ),
+      React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},
+        `SEBI default: trading ≤ ${dep?(dep.g/10):0}g | ${allowedTrading.length} denominations enabled`
+      )
+    ),
+
+    React.createElement(Sec,null,"Allowed Trading Denominations"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}},
+      TRADING_UNITS.map(t=>{
+        const isAllowed=allowedTrading.includes(t.label);
+        const isSebiDefault=t.g<=(dep?.g||0)/10;
+        const maxUnits=dep?Math.floor(dep.g/t.g):0;
+        return React.createElement("div",{key:t.label,style:{padding:"8px 10px",borderRadius:8,border:`2px solid ${isAllowed?"var(--cobalt)":"var(--border2)"}`,background:isAllowed?"var(--cobaltL)":"#fff",cursor:"pointer"},onClick:()=>toggle(selected,t.label)},
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+            React.createElement("div",null,
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:isAllowed?"var(--cobalt)":"var(--ink2)"}},t.label),
+              React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:2}},`${t.g}g · max ${maxUnits} units`)
+            ),
+            React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}},
+              isSebiDefault&&React.createElement("span",{style:{fontSize:7,background:"#e8f5e9",color:"var(--greenD)",padding:"1px 4px",borderRadius:3,fontWeight:700}},"SEBI 1/10"),
+              React.createElement("span",{style:{fontSize:16}},isAllowed?"☑":"☐")
+            )
+          )
+        );
+      })
+    ),
+
+    React.createElement(Card,{style:{background:"#fff8e1",marginBottom:10}},
+      React.createElement("div",{style:{fontSize:10,fontWeight:700,marginBottom:6}},`Example: Deposit ${selected}`),
+      React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",lineHeight:1.6}},
+        allowedTrading.length>0
+          ? allowedTrading.map(t=>{
+              const tg=TRADING_UNITS.find(x=>x.label===t)?.g||0;
+              const n=dep?Math.floor(dep.g/tg):0;
+              return `${n}×${t} = ${dep?.g}g`;
+            }).join("\nOR\n")
+          : "No trading denominations enabled"
+      )
+    ),
+
+    React.createElement(Sec,null,"All Deposit Units Summary"),
+    React.createElement(Card,null,
+      React.createElement("table",{className:"doc-table",style:{fontSize:9}},
+        React.createElement("thead",null,
+          React.createElement("tr",null,
+            React.createElement("th",null,"Deposit"),
+            React.createElement("th",null,"Allowed Trading Units")
+          )
+        ),
+        React.createElement("tbody",null,
+          DEPOSIT_UNITS.map(d=>React.createElement("tr",{key:d.label,style:{background:selected===d.label?"var(--cobaltL)":"#fff"}},
+            React.createElement("td",{style:{fontWeight:700}},d.label),
+            React.createElement("td",null,(matrix[d.label]||[]).join(", ")||React.createElement("span",{style:{color:"var(--red)"}}, "None enabled"))
+          ))
+        )
+      )
+    ),
+
+    React.createElement(Card,{style:{marginTop:8}},
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement(Btn,{kind:"green",onClick:save},"💾 Save Matrix"),
+        React.createElement(Btn,{kind:"orange",onClick:reset},"🔄 Reset to SEBI 1/10 Defaults")
       )
     )
   );
