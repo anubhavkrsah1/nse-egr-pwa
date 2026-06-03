@@ -1097,7 +1097,7 @@ function revokeDocAccess(depositId,docType,role){
 // SIDEBAR MENU
 // ================================================================
 const NAV_GROUPS=[
-  {group:"Depositor",items:[["login","🔐","Login"],["register","📝","Register"],["home","🏠","Home"],["create","➕","EGR Creation"],["track","📍","Track"],["notifs","🔔","Notifications"],["review","↩️","Review/Recall"],["payment","💳","Charges"],["extinguish","🔥","Extinguish"],["myDocs","🔒","My Documents"]]},
+  {group:"Depositor",items:[["login","🔐","Login"],["register","📝","Register"],["home","🏠","Home"],["workflow","🔄","Workflow"],["create","➕","EGR Creation"],["track","📍","Track"],["notifs","🔔","Notifications"],["review","↩️","Review/Recall"],["payment","💳","Charges"],["extinguish","🔥","Extinguish"],["myDocs","🔒","My Documents"]]},
   {group:"Documents",items:[["form45","📋","Form 45 & Deposit Letter"],["packingList","📦","Gold Packing List"],["indemnityLetter","🛡️","Letter of Indemnity"],["authLetter","✍️","Authorisation Letter"],["pickupVaultLetter","🚚","Pickup & Vault Letter"],["releaseTransferLetter","🔄","Release & Transfer"]]},
   {group:"Info & Tools",items:[["flyer","🌟","Flyer"],["cert","📜","EGR+Share"],["journeys","🗺️","Journeys"],["roleMap","👥","Role Map"],["flowMap","🔀","Process Flow"],["whatsapp","💬","WhatsApp"],["grievance","📞","Grievance"]]},
   {group:"Roles",items:[["collection","🏢","Collection Centre"],["pickup","🛵","Pickup Exec"],["assayer","🔬","Assayer"],["refiner","🏭","Refiner"],["vault","🏦","Vault Manager"],["dp","🏦","DP (Broker/Participant)"],["nsdl","🏛️","NSDL (Depository)"],["admin","⚙️","Admin"]]},
@@ -1677,6 +1677,7 @@ function App(){
     flyer:React.createElement(Flyer,{go}),
     cert:React.createElement(Cert,{go,requests}),
     extinguish:React.createElement(Extinguish,{go}),
+    workflow:React.createElement(React.Fragment,null,React.createElement(NavBar,{onBack:()=>go("home"),title:"6-Phase Workflow"}),React.createElement(Scroll,null,React.createElement(InfoBox,null,"Understand how your gold flows through the NSE EGR ecosystem. Toggle between physical gold flow and digital data flow."),React.createElement(WorkflowDiagram,null))),
     myDocs:React.createElement(MyDocs,{go,refreshData}),
     journeys:React.createElement(Journeys,{go}),
     roleMap:React.createElement(RoleMap,{go}),
@@ -2479,6 +2480,85 @@ function Cert({go,requests}){
 
 // ================================================================
 // ================================================================
+// WORKFLOW DIAGRAM — Interactive Gold Flow vs Data Flow
+// ================================================================
+function WorkflowDiagram(){
+  const [flowType,setFlowType]=useState("gold"); // "gold" or "data"
+
+  const goldFlow=[
+    {phase:"Collection",actor:"Sequel/CC",icon:"🚚",what:"Gold pickup from depositor's home",duration:"T+0",status:"✓"},
+    {phase:"Weighing",actor:"Collection Centre",icon:"⚖️",what:"Gold weighed & packaged with AWB",duration:"T+0",status:"✓"},
+    {phase:"Assay",actor:"Refiner",icon:"🔬",what:"Gold assayed for purity (≥95% check)",duration:"T+1",status:"✓"},
+    {phase:"Heat Treat",actor:"Refiner",icon:"🔥",what:"Gold heated to 99.5% or 99.9% purity (if <95%)",duration:"T+2-3",status:"✓"},
+    {phase:"Transport",actor:"Courier",icon:"🚛",what:"Gold shipped in secure container to vault",duration:"T+3-4",status:"✓"},
+    {phase:"Vault Receipt",actor:"Vault Manager",icon:"🏦",what:"Gold received, bar numbers verified, stored",duration:"T+5",status:"✓"},
+    {phase:"LIVE",actor:"Depositor",icon:"✅",what:"Gold locked in vault, EGR tradeable",duration:"T+5+",status:"LIVE"},
+  ];
+
+  const dataFlow=[
+    {phase:"KYC Submission",actor:"NSDL",icon:"📋",what:"Form 45 + Indemnity + KYC (AADHAAR/PAN)",duration:"T+0",status:"✓"},
+    {phase:"KYC Verification",actor:"NSDL",icon:"🔍",what:"PAN/AADHAAR verified in NSDL master [CHECK 1]",duration:"T+0",status:"✓"},
+    {phase:"Assay Cert",actor:"Refiner",icon:"📄",what:"Packing List + Assay Certificate generated",duration:"T+1",status:"✓"},
+    {phase:"Purity Approval",actor:"NSDL",icon:"✔️",what:"Purity ≥95%? Bar numbers unique? [CHECK 2]",duration:"T+1",status:"✓"},
+    {phase:"DRN Entry",actor:"DP",icon:"💻",what:"Deposit Request Number (DRN) entered in eDPAM",duration:"T+3",status:"✓"},
+    {phase:"Demat Credit",actor:"DP",icon:"📱",what:"ISIN units credited to demat account",duration:"T+3",status:"✓"},
+    {phase:"Demat Limit Check",actor:"NSDL",icon:"⚠️",what:"Demat limit & DP balance OK? [CHECK 3]",duration:"T+3",status:"✓"},
+    {phase:"EGR LIVE",actor:"NSE",icon:"🎯",what:"ISIN activated, tradeable, charges auto-deduct",duration:"T+5+",status:"LIVE"},
+  ];
+
+  const flow=flowType==="gold"?goldFlow:dataFlow;
+  const title=flowType==="gold"?"🥇 Gold Flow (Physical)":"📊 Data/Document Flow (Digital)";
+  const desc=flowType==="gold"
+    ?"Physical gold movement from home to vault"
+    :"Documents & digital records from KYC to LIVE EGR";
+
+  return React.createElement(React.Fragment,null,
+    React.createElement(Sec,null,title),
+    React.createElement(Card,{style:{marginBottom:10,background:"var(--paper2)"}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        React.createElement("span",{style:{fontSize:10,color:"var(--ink3)"}},"Switch View:"),
+        React.createElement("div",{style:{display:"flex",gap:6}},
+          React.createElement("button",{onClick:()=>setFlowType("gold"),style:{padding:"6px 12px",borderRadius:20,border:`2px solid ${flowType==="gold"?"var(--orange)":"var(--border2)"}`,background:flowType==="gold"?"var(--orange)":"#fff",color:flowType==="gold"?"#fff":"var(--ink2)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},"🥇 Gold Flow"),
+          React.createElement("button",{onClick:()=>setFlowType("data"),style:{padding:"6px 12px",borderRadius:20,border:`2px solid ${flowType==="data"?"var(--cobalt)":"var(--border2)"}`,background:flowType==="data"?"var(--cobalt)":"#fff",color:flowType==="data"?"#fff":"var(--ink2)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}},"📊 Data Flow")
+        )
+      )
+    ),
+    React.createElement(Card,{style:{background:"var(--paper2)",marginBottom:10}},
+      React.createElement("div",{style:{fontSize:10,color:"var(--ink3)"}},desc)
+    ),
+    flow.map((s,i)=>React.createElement(React.Fragment,{key:i},
+      React.createElement(Card,{style:{marginBottom:8,borderLeft:`4px solid ${s.status==="LIVE"?"var(--greenD)":"var(--cobalt)"}`}},
+        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+          React.createElement("div",{style:{display:"flex",gap:8,flex:1}},
+            React.createElement("div",{style:{fontSize:24}},s.icon),
+            React.createElement("div",null,
+              React.createElement("div",{style:{fontSize:11,fontWeight:700}},s.phase),
+              React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:1}},s.what)
+            )
+          ),
+          React.createElement("div",{style:{textAlign:"right"}},
+            React.createElement("div",{style:{fontSize:9,fontWeight:600,color:"var(--ink3)"}},s.duration),
+            React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"var(--greenD)",marginTop:2}},s.status)
+          )
+        ),
+        React.createElement("div",{style:{fontSize:8,color:"var(--ink3)",background:"var(--paper)",padding:"4px 6px",borderRadius:4}},
+          "👤 ",s.actor
+        )
+      ),
+      i<flow.length-1&&React.createElement("div",{style:{textAlign:"center",fontSize:14,color:"var(--ink3)",margin:"-4px 0 4px",position:"relative",zIndex:1}},"↓")
+    )),
+    React.createElement(Card,{style:{background:"var(--greenL)",marginTop:10}},
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"var(--greenD)"}},
+        `✅ Complete (${flow.length} stages)`
+      ),
+      React.createElement("div",{style:{fontSize:9,color:"var(--greenD)",marginTop:3}},
+        `Total time: ~7-10 days | Final status: ${flow[flow.length-1].status}`
+      )
+    )
+  );
+}
+
+// ================================================================
 // DEPOSITOR DOCUMENTS — Visible to Refiner, Vault, NSDL always
 // Shows all 6 mandatory documents for a depositor's EGR
 // ================================================================
@@ -2574,12 +2654,17 @@ function MyDocs({go,refreshData}){
 }
 
 function Extinguish({go}){
+  const rates=()=>{const saved=localStorage.getItem("RATE_CARDS");return saved?JSON.parse(saved):{extinguish:200,gst:0.03};};
   const owned={"10g":{sym:"GOLD10G999",max:2,val:59800,g:10},"1g":{sym:"GOLD1G999",max:4,val:5980,g:1}};
   const [qty,setQty]=useState({"10g":0,"1g":4});
   const [done,setDone]=useState(false);
   const set=(k,n)=>setQty(q=>({...q,[k]:Math.max(0,Math.min(owned[k].max,n))}));
   const totalG=Object.keys(qty).reduce((a,k)=>a+qty[k]*owned[k].g,0);
   const totalV=Object.keys(qty).reduce((a,k)=>a+qty[k]*owned[k].val,0);
+  const gst3pct=Math.round(totalV*rates().gst);
+  const extinguishCharge=rates().extinguish;
+  const gstOnCharge=Math.round(extinguishCharge*rates().gst);
+  const totalDue=totalV+gst3pct+extinguishCharge+gstOnCharge;
   return React.createElement(React.Fragment,null,
     React.createElement(NavBar,{onBack:()=>go("home"),title:"Extinguish EGR"}),
     React.createElement(Scroll,null,
@@ -2603,6 +2688,34 @@ function Extinguish({go}){
       React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",background:totalG===0?"var(--paper2)":"var(--greenL)",borderRadius:8,padding:"9px 12px",marginBottom:10}},
         React.createElement("span",{style:{fontSize:11,fontWeight:600,color:totalG===0?"var(--ink3)":"var(--greenD)"}},`${qty["10g"]}×10g + ${qty["1g"]}×1g = ${totalG}g`),
         React.createElement("span",{style:{fontSize:12,fontWeight:700,color:totalG===0?"var(--ink3)":"var(--greenD)"}},fmtINR(totalV))
+      ),
+      totalG>0&&React.createElement(Card,{style:{background:"var(--ambL)",marginBottom:10}},
+        React.createElement("div",{style:{fontSize:11,fontWeight:700,marginBottom:8}},"💰 Extinguish Cost Breakdown"),
+        React.createElement("div",{style:{fontSize:10,display:"grid",gap:4}},
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between"}},
+            React.createElement("span",null,"Gold value at ₹7000/g"),
+            React.createElement("span",{style:{fontFamily:"var(--mono)",fontWeight:600}},fmtINR(totalV))
+          ),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",color:"var(--orange)"}},
+            React.createElement("span",null,"GST (3% on gold)"),
+            React.createElement("span",{style:{fontFamily:"var(--mono)",fontWeight:600}},fmtINR(gst3pct))
+          ),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between"}},
+            React.createElement("span",null,"Extinguish charge"),
+            React.createElement("span",{style:{fontFamily:"var(--mono)",fontWeight:600}},fmtINR(extinguishCharge))
+          ),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",color:"var(--orange)"}},
+            React.createElement("span",null,"GST (3% on charge)"),
+            React.createElement("span",{style:{fontFamily:"var(--mono)",fontWeight:600}},fmtINR(gstOnCharge))
+          ),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",borderTop:"1px solid var(--border2)",paddingTop:6,marginTop:6,fontSize:11,fontWeight:700}},
+            React.createElement("span",null,"Total Due:"),
+            React.createElement("span",{style:{fontFamily:"var(--mono)",color:"var(--redD)"}},fmtINR(totalDue))
+          ),
+          React.createElement("div",{style:{fontSize:9,color:"var(--ink3)",marginTop:4}},
+            "⚠️ Payment required before vault release"
+          )
+        )
       ),
       !done
         ? React.createElement(Btn,{kind:"cobalt",onClick:()=>{if(totalG===0){alert("Select at least one unit.");return;}setDone(true);}},"Submit extinguish request →")
