@@ -32,6 +32,7 @@ What those parents lose is not primarily medical. It is the small daily scaffold
 | Pricing | **₹399/mo** — unlimited reminders, ~15 min/day of free-form conversation |
 | Avatar | **Stylized illustration** generated from an uploaded photo, animated with audio-driven lip-sync/blink |
 | Platform | **Native Android first** — reliable alarms, on-device wake word, telephony access for emergencies |
+| Build path | **Scenario A** — solo with Claude Code, ~₹75,000, 10–14 weeks to beta |
 
 ---
 
@@ -261,6 +262,31 @@ Two things dominate and neither is the AI: **real Android test devices** and **y
 | **Total** | **≈ ₹75,000** (~$850) |
 
 The test phones are not optional and are the line item people cut first. Xiaomi, Oppo, Vivo, and Samsung each kill background processes differently and aggressively. An emulator will tell you your reminders work. A ₹9,000 Redmi will tell you the truth.
+
+#### Executing Scenario A — de-risking the solo path
+
+**Chosen.** The one real risk this path carries is the native Android layer: wake word, foreground services, exact alarms, telephony. It's where generated code most reliably produces something that looks correct, passes in an emulator, and silently fails on a real handset three days later. Two things largely neutralise it without breaking the ₹75,000 budget:
+
+**1. Reorder the build — spike the riskiest thing in week 1.** The build sequence earlier in this document starts with the persona prototype, which is right for validating the *product*. For a solo build, run a second track in parallel that validates the *platform*, and do it before writing anything real:
+
+> Build a throwaway app that does exactly one thing — play an audio file at a scheduled time. No UI beyond a time picker. Install it on a real Redmi and a real Samsung, enable battery optimisation, don't touch the phones, and leave them for 72 hours across several scheduled fires.
+
+If the audio plays every time, the project is viable solo and you proceed with confidence. If it doesn't, you have learned the single most important thing about this build in week 1 for the price of two phones — instead of in week 10, having built an avatar and a voice pipeline on top of a foundation that drops reminders. Everything else in mySon is ordinary app work. This is the part that isn't.
+
+**2. Buy review hours, not build weeks.** Scenario B's ₹1.5–3 lakh assumed a contractor *building* the native layer. A cheaper variant: build it yourself, then pay a senior Android developer for 3–4 hours to review your `AlarmManager` setup, foreground service, wake lock handling, and OEM whitelisting prompts. Roughly ₹15,000–20,000, keeps you inside Scenario A's envelope, and catches most of what would otherwise surface as a support ticket from a family whose father missed his BP tablet.
+
+**Immediate shopping list (~₹40,000 to start):**
+
+| Item | Cost | When |
+|---|---|---|
+| 2 real Android phones — one Xiaomi/Redmi, one Samsung, both budget tier | ₹30,000 | Now, before anything else |
+| Claude Code (Max 5×), month 1 | ₹8,800 | Now |
+| Anthropic API credits (start small, top up) | ₹2,000 | Before the conversation milestone |
+| Sarvam account | ₹0 (₹1,000 free credits) | Before the voice prototype |
+| Supabase, Firebase, Expo EAS, GitHub | ₹0 (free tiers) | At the back-end milestone |
+| Google Play developer account | ₹2,200 | Before first release, not now |
+
+Everything else in the Scenario A table accrues month by month — no reason to pay for it up front.
 
 ### Scenario B — solo + contract help for the native layer (recommended)
 
