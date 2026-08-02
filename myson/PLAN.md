@@ -327,6 +327,74 @@ Variable cost is ~₹365/user/month against ₹399 revenue (breakdown earlier in
 
 Scenario A's ₹75,000 does not include your salary for three months. If you'd otherwise be earning, the real cost of the solo path is ₹75,000 plus 3.5 months of opportunity cost — which likely exceeds Scenario B's total. Solo is cheaper in cash, not in value. Choose it because you want to learn the stack or retain full ownership, not because the spreadsheet says so.
 
+## The WhatsApp option
+
+Evaluated as an alternative delivery channel. **Verdict: excellent validation MVP, insufficient as the product.** Recommended as a v0 *before* the native build, not instead of it.
+
+### What WhatsApp gives you
+
+Zero install friction — the single biggest adoption barrier for this demographic disappears. The parent already has WhatsApp, already knows how to send voice notes (it is the most-used feature among elderly Indian users), and needs no app store, no permissions dialog, no updates. The child can set the whole thing up remotely without ever touching the parent's phone.
+
+It also erases the entire category of risk that Scenario A's week-1 spike exists to test: no OEM battery optimisation, no Doze mode, no foreground services, no `AlarmManager`. Meta's infrastructure delivers the message.
+
+You can even keep the likeness hook — set the WhatsApp Business profile photo to the stylized portrait and the display name to "Rohit". The parent sees their son's face in the chat list.
+
+### The constraint that shapes everything
+
+WhatsApp has a **24-hour customer service window**. Inside it, you can send freely — including voice notes — at no per-message cost. Outside it, you may only send pre-approved **template** messages, and [template headers support text, image, video, and document — **not audio**](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/audio-messages).
+
+So a reminder to a parent who hasn't messaged in 24 hours **cannot be in their son's voice.** It has to be text.
+
+The workaround is a daily "knock": one cheap text template — *"Papa, Rohit yahan hai"* — which, once the parent taps or replies, reopens a 24-hour window in which unlimited voice conversation flows free. At [₹0.115 per utility message](https://whautomate.com/whatsapp-business-api-pricing-india), plus BSP markup and 18% GST, that is roughly **₹6 per user per month**. Messaging cost is effectively a rounding error.
+
+The failure mode is the part that matters: if the parent goes quiet for over 24 hours, the window closes and you degrade to text exactly when you most want to reach them. A parent who has been silent for a day is the one you are worried about.
+
+### What WhatsApp cannot do
+
+| v1 pillar | On WhatsApp |
+|---|---|
+| Proactive reminders | **Partial** — voice inside the 24h window, text-only outside it |
+| Free-form companionship | **Yes** — works well, this is WhatsApp's strength |
+| Emergency | **No.** No always-visible button, no voice trigger, no telephony, no ability to place a call. You can notify the child from your backend, but the parent must unlock their phone and open an app — the exact thing someone who has fallen cannot do |
+| Hands-free ("Beta, suno") | **No.** No wake word. The parent must open WhatsApp and hold the mic button — genuinely hard with tremor or arthritis |
+
+Also worth weighing: Meta owns the channel. Policy shifts, price changes, and account bans are outside your control, and a health-adjacent companion for vulnerable users sits in a policy grey area worth reading carefully before you build a business on it.
+
+### Cost and time
+
+**Validation build (5 users, Meta test number):**
+
+Meta's Cloud API provides a free test number that can message up to 5 recipients with **no Business Verification required**. That is exactly the size of a first cohort.
+
+| Item | Cost |
+|---|---|
+| Claude Code, 1 month | ₹8,800 |
+| Anthropic API + Sarvam credits | ₹3,000 |
+| Hosting (small VPS or serverless webhook) | ₹1,500 |
+| WhatsApp messaging | ₹0 (test number) |
+| Test phones | **₹0 — not needed** |
+| **Total** | **≈ ₹13,000–15,000** |
+
+**Time: 2–3 weeks solo.** Week 1: webhook server, audio receive/send, STT→LLM→TTS loop. Week 2: reminder scheduler, the daily knock template, persona tuning. Week 3: testing with real users.
+
+**Production caveat:** going beyond 5 users requires **Meta Business Verification** — a registered entity, GST, and a review that takes anywhere from a few days to several weeks. This is the long pole, not the code. Start it early or go through a BSP (AiSensy, Interakt, Wati, Gupshup) who can shortcut it for ~₹1,000–2,500/month in platform fees.
+
+Per-user running cost is ~₹330/month — essentially the same as the native app, because speech dominates and WhatsApp messaging is nearly free.
+
+### Will people like it?
+
+Honest read: **more at first, less over time.**
+
+Adoption will be dramatically better — nothing to install, nothing to learn. But a chat thread is a place you visit, whereas an app that speaks up on its own is a presence in the room. The proactive, ambient quality that makes mySon feel like a person rather than a service is exactly what the 24-hour window erodes.
+
+The sharper problem is commercial. **The parent is the user, but the child is the buyer** — and the child is buying peace of mind, which mostly means the emergency path and the sense that someone would know if something went wrong. WhatsApp cannot deliver that. So the likely outcome is a version that *retains parents better and converts children worse*.
+
+### Recommendation
+
+Build the WhatsApp version first, as a two-to-three-week, ₹15,000 experiment with five real families, before committing to Scenario A's ₹75,000 and fourteen weeks.
+
+It answers the one question that determines whether any of this works: **will an elderly parent form a genuine daily habit with an AI voiced as their child?** Everything else — the avatar, the emergency cascade, the wake word — is engineering that only matters if the answer is yes. If it is, build the native app knowing the premise holds. If it isn't, you have learned it for a fifth of the money and a fifth of the time, and the persona work carries over intact.
+
 ## Verification
 
 - **Cache health:** assert `cache_read_input_tokens > 0` on turn 2+ of every session in integration tests. This will catch the time-in-system-prompt regression the moment someone reintroduces it.
