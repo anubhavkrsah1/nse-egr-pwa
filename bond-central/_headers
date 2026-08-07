@@ -1,0 +1,13 @@
+# Bond Central — Cloudflare Pages cache headers
+# Assumes this folder (bond-central/) is the Pages project's build output
+# directory / root. If instead you deploy the whole repo and Bond Central
+# lives at /bond-central/ under it, prefix every path below with /bond-central.
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/js/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/css/*
+  Cache-Control: public, max-age=3600
