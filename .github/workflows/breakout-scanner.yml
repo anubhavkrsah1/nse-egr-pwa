@@ -1,0 +1,68 @@
+name: Daily Breakout Scan
+
+on:
+  schedule:
+    # 08:30 UTC = 14:00 IST, Monday to Friday.
+    # NSE holidays are filtered by the scanner itself, not by this schedule.
+    - cron: '30 8 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Run even if today is not an NSE trading day'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Scan and log the result without sending anything'
+        type: boolean
+        default: false
+
+# Never let a delayed run overlap the next one.
+concurrency:
+  group: breakout-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: scanner/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scanner/requirements.txt
+
+      - name: Run scan and deliver report
+        working-directory: scanner
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
+        run: |
+          python run_daily.py \
+            ${{ inputs.force && '--force' || '' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Upload the Excel report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: breakout-list
+          path: scanner/output/*.xlsx
+          if-no-files-found: ignore
+          retention-days: 30

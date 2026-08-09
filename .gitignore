@@ -1,2 +1,6 @@
 # Local Netlify folder
 .netlify
+
+# Scanner output
+scanner/output/
+scanner/__pycache__/
