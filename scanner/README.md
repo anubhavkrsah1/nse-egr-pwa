@@ -68,8 +68,13 @@ For Outlook use `smtp.office365.com` with port `587`. Any SMTP provider works.
 
 | Secret | Value |
 |---|---|
-| `CALLMEBOT_PHONE` | your number in international format, e.g. `+919876543210` |
+| `CALLMEBOT_PHONE` | your mobile number, e.g. `+919876543210` |
 | `CALLMEBOT_APIKEY` | the key from step 3 |
+
+A bare 10-digit Indian mobile is accepted and gets the `+91` prefix automatically.
+Numbers outside India must include their own country code.
+
+Keep the number in the secret, never in the code — this repository is public.
 
 CallMeBot is a free personal service with no uptime guarantee. Use email as your
 primary channel and treat WhatsApp as the convenience copy.

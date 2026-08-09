@@ -89,6 +89,36 @@ def main() -> int:
             ok &= check("callmebot called", get.called)
             ok &= check("twilio not called as a fallback", not post.called)
 
+    print("\nPhone number normalisation")
+    cases = [
+        ("9876543210", "+919876543210", "bare 10-digit Indian mobile"),
+        ("98765 43210", "+919876543210", "spaces stripped"),
+        ("+919876543210", "+919876543210", "already international, untouched"),
+        ("919876543210", "+919876543210", "missing plus added"),
+        ("09876543210", "+919876543210", "leading zero dropped"),
+        ("+14155238886", "+14155238886", "non-Indian number untouched"),
+    ]
+    for raw, want, label in cases:
+        ok &= check(f"{label}: {raw!r} -> {want}", notify.normalise_phone(raw) == want)
+
+    with clean_env(CALLMEBOT_PHONE="9876543210", CALLMEBOT_APIKEY="k"):
+        with mock.patch.object(notify.requests, "get") as get:
+            notify.send_whatsapp("hello")
+            ok &= check("callmebot receives the normalised number",
+                        get.call_args.kwargs["params"]["phone"] == "+919876543210")
+
+    with clean_env(
+        TWILIO_ACCOUNT_SID="AC123", TWILIO_AUTH_TOKEN="tok",
+        TWILIO_WHATSAPP_FROM="+14155238886", TWILIO_WHATSAPP_TO="9876543210",
+    ):
+        with mock.patch.object(notify.requests, "post") as post:
+            notify.send_whatsapp("hello")
+            data = post.call_args.kwargs["data"]
+            ok &= check("twilio recipient gains the whatsapp: scheme",
+                        data["To"] == "whatsapp:+919876543210")
+            ok &= check("twilio sender gains the whatsapp: scheme",
+                        data["From"] == "whatsapp:+14155238886")
+
     print("\nLong messages are truncated")
     with clean_env(CALLMEBOT_PHONE="+91", CALLMEBOT_APIKEY="k"):
         with mock.patch.object(notify.requests, "get") as get:

@@ -39,10 +39,37 @@ log = logging.getLogger(__name__)
 # WhatsApp providers reject very long bodies; keep well under the limit.
 WHATSAPP_CHAR_LIMIT = 1500
 HTTP_TIMEOUT = 30
+# Assumed when a bare 10-digit mobile number is configured.
+DEFAULT_COUNTRY_CODE = "+91"
 
 
 def _env(name: str) -> str:
     return (os.environ.get(name) or "").strip()
+
+
+def normalise_phone(raw: str) -> str:
+    """Put a configured number into the international format WhatsApp APIs expect.
+
+    A bare 10-digit Indian mobile - the way you would write it locally - gains the
+    +91 prefix, as does a 91-prefixed number missing its plus. Anything already in
+    international format is left alone, so non-Indian numbers must include their
+    own country code.
+    """
+    phone = raw.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    if phone.startswith("+"):
+        return phone
+
+    digits = phone.lstrip("0")
+    if len(digits) == 10 and digits[0] in "6789":  # Indian mobile series
+        return DEFAULT_COUNTRY_CODE + digits
+    if len(digits) == 12 and digits.startswith("91"):
+        return "+" + digits
+
+    log.warning(
+        "Phone number %r is not in international format; "
+        "prefix it with your country code, e.g. +91XXXXXXXXXX.", raw,
+    )
+    return phone
 
 
 def send_email(subject: str, html: str, text: str, attachment: Path | None = None) -> bool:
@@ -95,6 +122,7 @@ def _send_whatsapp_callmebot(text: str) -> bool:
     if not (phone and apikey):
         return False
 
+    phone = normalise_phone(phone)
     response = requests.get(
         "https://api.callmebot.com/whatsapp.php",
         params={"phone": phone, "text": text, "apikey": apikey},
@@ -112,6 +140,12 @@ def _send_whatsapp_twilio(text: str) -> bool:
     recipient = _env("TWILIO_WHATSAPP_TO")
     if not (sid and token and sender and recipient):
         return False
+
+    # Twilio addresses both endpoints as whatsapp:<number>; add the scheme if missing.
+    sender = sender if sender.startswith("whatsapp:") else f"whatsapp:{normalise_phone(sender)}"
+    recipient = (
+        recipient if recipient.startswith("whatsapp:") else f"whatsapp:{normalise_phone(recipient)}"
+    )
 
     response = requests.post(
         f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json",
